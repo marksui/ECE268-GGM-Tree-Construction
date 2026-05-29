@@ -72,14 +72,14 @@ size_t ggm_tree_num_leaves(const ggm_tree_t *tree) {
 void ggm_tree_print(const ggm_tree_t *tree, int max_depth_to_print) {
     if (!tree) return;
     int limit = (max_depth_to_print < tree->depth) ? max_depth_to_print : tree->depth;
-    printf("GGM Tree [prf=%s, depth=%d, seed_bytes=%zu]\n",
-           tree->prf->name, tree->depth, tree->seed_bytes);
+    printf("GGM Tree [prf=%s, depth=%d, seed_bytes=%llu]\n",
+           tree->prf->name, tree->depth, (unsigned long long)tree->seed_bytes);
     for (int l = 0; l <= limit; l++) {
         size_t count = (size_t)1 << l;
-        printf("  Level %d (%zu node%s):\n", l, count, count == 1 ? "" : "s");
+        printf("  Level %d (%llu node%s):\n", l, (unsigned long long)count, count == 1 ? "" : "s");
         for (size_t i = 0; i < count; i++) {
             const uint8_t *node = ggm_tree_get_node(tree, l, i);
-            printf("    [%zu] ", i);
+            printf("    [%llu] ", (unsigned long long)i);
             for (size_t b = 0; b < tree->seed_bytes; b++) printf("%02x", node[b]);
             printf("\n");
         }
