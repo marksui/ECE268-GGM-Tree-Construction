@@ -1,4 +1,4 @@
-# Makefile — GGM PRF Tree Project (EC268)
+# Makefile — GGM PRF Tree Project (ECE268)
 #
 # CPU tests (gcc, no CUDA needed):
 #   make all             run both CPU test suites
@@ -6,8 +6,8 @@
 #   make test_spongent   Spongent-128 + GGM tree
 #
 # GPU builds (nvcc required):
-#   make test_ggm_gpu    Spongent CPU vs GPU comparison test
-#   make test_keccak     Keccak NIST KAT + 10k CPU/GPU equivalence test
+#   make test_ggm_gpu    Spongent + Keccak CPU vs GPU comparison
+#   make test_keccak     Keccak NIST KAT + 10k CPU/GPU equivalence
 #   make gpu_all         build all GPU test binaries
 #
 # Override GPU arch (default sm_70 = Datahub V100):
@@ -26,7 +26,8 @@ COMMON     = common/ggm_tree.c common/utils.c
 SPONG_CPU  = spongent/spongent.c spongent/spongent_prf.c
 SPONG_GPU  = spongent/spongent_kernel.cu
 GGM_GPU    = gpu/ggm_tree_gpu.cu
-KECCAK_SRC = keccak/keccak_f1600.cu keccak/keccak_prf.cu
+KECCAK_CPU = keccak/keccak_f1600.cu keccak/keccak_prf.cu
+KECCAK_GPU = keccak/keccak_kernel.cu
 
 .PHONY: all gpu_all test_ggm test_spongent test_ggm_gpu test_keccak clean
 
@@ -56,9 +57,12 @@ test_spongent: $(BUILD)/test_spongent
 	./$(BUILD)/test_spongent
 
 # -----------------------------------------------------------------------
-# GPU: Spongent CPU vs GPU comparison (Member B + C)
+# GPU: Spongent + Keccak CPU vs GPU comparison
 # -----------------------------------------------------------------------
 $(BUILD)/spongent_gpu.o: $(SPONG_GPU) $(SPONG_CPU) | $(BUILD)
+	$(NVCC) $(NVCCFLAGS) -dc $^ -o $@
+
+$(BUILD)/keccak_gpu.o: $(KECCAK_GPU) $(KECCAK_CPU) | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) -dc $^ -o $@
 
 $(BUILD)/ggm_tree_gpu.o: $(GGM_GPU) gpu/ggm_tree_gpu.cuh | $(BUILD)
@@ -67,6 +71,7 @@ $(BUILD)/ggm_tree_gpu.o: $(GGM_GPU) gpu/ggm_tree_gpu.cuh | $(BUILD)
 $(BUILD)/test_ggm_gpu: tests/test_ggm_gpu.cu \
                         $(BUILD)/ggm_tree_gpu.o \
                         $(BUILD)/spongent_gpu.o \
+                        $(BUILD)/keccak_gpu.o \
                         $(COMMON) | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@
 
@@ -74,9 +79,9 @@ test_ggm_gpu: $(BUILD)/test_ggm_gpu
 	./$(BUILD)/test_ggm_gpu
 
 # -----------------------------------------------------------------------
-# GPU: Keccak NIST KAT + 10k CPU/GPU equivalence (Member A)
+# GPU: Keccak NIST KAT + 10k CPU/GPU equivalence
 # -----------------------------------------------------------------------
-$(BUILD)/test_keccak: tests/test_keccak.cu $(KECCAK_SRC) | $(BUILD)
+$(BUILD)/test_keccak: tests/test_keccak.cu $(KECCAK_CPU) | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@
 
 test_keccak: $(BUILD)/test_keccak

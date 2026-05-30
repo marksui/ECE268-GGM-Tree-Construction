@@ -30,8 +30,8 @@
 #define SPONGENT128_CAP_BYTES    16   /* c = 128 bits    */
 #define SPONGENT128_HASH_BYTES   16   /* output 128 bits */
 #define SPONGENT128_NR_ROUNDS    70
-#define SPONGENT128_LFSR_BITS     7   /* ceil(log2(70+1)) */
-#define SPONGENT128_LFSR_INIT  0x7E  /* 0b1111110        */
+#define SPONGENT128_LFSR_BITS     7   /* ceil(log2(70+1))             */
+#define SPONGENT128_LFSR_INIT  0x7A  /* 0b1111010 — official value   */
 
 /* -----------------------------------------------------------------------
  * Core permutation
