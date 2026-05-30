@@ -1,0 +1,106 @@
+./build/test_ggm
+=== GGM tree framework tests (Dummy PRF) ===
+
+[depth=0]
+  PASS  build succeeds
+  PASS  1 leaf
+  PASS  root == seed
+
+[depth=1]
+  PASS  node(1,0) correct
+  PASS  node(1,1) correct
+
+[depth=3]
+  PASS  8 leaves
+  PASS  node(2,0)
+  PASS  node(2,1)
+  PASS  node(2,2)
+  PASS  node(2,3)
+GGM Tree [prf=Dummy-XOR, depth=3, seed_bytes=4]
+  Level 0 (1 node):
+    [0] 12345678
+  Level 1 (2 nodes):
+    [0] b89efcd2
+    [1] 4761032d
+  Level 2 (4 nodes):
+    [0] 12345678
+    [1] edcba987
+    [2] edcba987
+    [3] 12345678
+  Level 3 (8 nodes):
+    [0] b89efcd2
+    [1] 4761032d
+    [2] 4761032d
+    [3] b89efcd2
+    [4] 4761032d
+    [5] b89efcd2
+    [6] b89efcd2
+    [7] 4761032d
+
+[out-of-bounds]
+  PASS  level > depth -> NULL
+  PASS  index >= 2^level -> NULL
+  PASS  negative level -> NULL
+
+[bad inputs]
+  PASS  depth=-1
+  PASS  depth>MAX
+  PASS  null tree
+  PASS  null prf
+
+[get_leaves pointer]
+  PASS  get_leaves == get_node(depth,0)
+
+=== Results: 18 / 18 passed ===
+./build/test_spongent
+=== Spongent-128 + GGM tree tests ===
+
+[LFSR]
+  Sequence from 0x7A: 0x7A 0x74 0x68 0x50 0x21 0x43 0x07 0x0E 0x1C 0x38 0x71 0x62 
+  PASS  lfsr_step matches reference sequence
+
+[sBoxLayer]
+  PASS  sBoxLayer: 0xED -> 0x3C
+
+[pLayer bijectivity]
+  PASS  pLayer: each input bit maps to exactly one output bit
+
+[Hash]
+  PASS  hash(hello) is deterministic
+  PASS  hash(hello) != hash(Hello)
+  hash("hello"): 1da39f0b0f47098a813d691eacf70eaa
+  hash(empty) : 9ebec31e89fec68a5697662968b1ba7f
+  PASS  hash matches official test vector
+
+[PRG expand]
+  PASS  expand deterministic (out0)
+  PASS  expand deterministic (out1)
+  PASS  out0 != out1 (domain separation)
+  PASS  out0 != seed
+  seed : 0123456789abcdef0123456789abcdef
+  out0 : 64001d5579036ce8889cf9e98bd2d0f5
+  out1 : eb0d1c9ae0a181c5eaaa8df624daf0be
+
+[GGM tree depth=4]
+  PASS  ggm_tree_build(depth=4) succeeds
+  PASS  16 leaves
+  PASS  root matches seed
+  PASS  node(1,0)==expand(root)[0]
+  PASS  node(1,1)==expand(root)[1]
+GGM Tree [prf=Spongent-128, depth=4, seed_bytes=16]
+  Level 0 (1 node):
+    [0] deadbeef00112233445566778899aabb
+  Level 1 (2 nodes):
+    [0] da8cced4b0c4519f80afa156d20424c1
+    [1] ff0f7f86c9ddccb39c4b84e07f32c2cb
+  Level 2 (4 nodes):
+    [0] 8a502f0b51f8d73b97ba444a095fc619
+    [1] 73245a788172a1171631bf0ef18966fa
+    [2] 7c8abfd289bec094e787d93ebd7d5475
+    [3] f4a21d1ad1700b8470ae1cae353b7417
+
+[GGM tree depth=8]
+  PASS  build depth=8 succeeds
+  PASS  256 leaves
+
+=== Results: 17 / 17 passed ===
