@@ -41,12 +41,11 @@ static void test_lfsr(void) {
     printf("  Sequence from 0x%02X: ", s);
     for (int i = 0; i < 12; i++) { printf("0x%02X ", s); s = spongent128_lfsr_step(s); }
     printf("\n");
-    EXPECT(1, "lfsr_step runs without crash");
-    /*
-     * TODO: once official test vectors are confirmed, add:
-     * uint8_t expected[] = { 0x7E, 0x7D, 0x7A, ... };
-     * EXPECT(s_at_step_n == expected[n], "lfsr matches reference");
-     */
+    /* Verify first 5 steps against reference Python (joostrijneveld/readable-crypto) */
+    const uint8_t ref[5] = { 0x7A, 0x74, 0x68, 0x50, 0x21 };
+    uint8_t lc = SPONGENT128_LFSR_INIT; int ok = 1;
+    for (int i = 0; i < 5; i++) { if (lc != ref[i]) ok = 0; lc = spongent128_lfsr_step(lc); }
+    EXPECT(ok, "lfsr_step matches reference sequence");
 }
 
 /* -----------------------------------------------------------------------
@@ -101,11 +100,15 @@ static void test_hash(void) {
     uint8_t empty[16];
     spongent128_hash(NULL, 0, empty);
     print_hex("  hash(empty) ", empty, 16);
-    /*
-     * TODO: add EXPECT_BYTES_EQ against official Spongent-128 test vector
-     * for empty input once verified from the CHES 2011 paper appendix.
-     */
-    EXPECT(1, "hash(empty) completes");
+    /* Official Spongent-128 test vector (CHES 2011 paper + spongent website) */
+    const uint8_t tv_msg[] = "Sponge + Present = Spongent";
+    const uint8_t tv_exp[16] = {
+        0x6B,0x7B,0xA3,0x5E,0xB0,0x9D,0xE0,0xF8,
+        0xDE,0xF0,0x6A,0xE5,0x55,0x69,0x4C,0x53
+    };
+    uint8_t tv_got[16];
+    spongent128_hash(tv_msg, sizeof(tv_msg)-1, tv_got);
+    EXPECT_BYTES_EQ(tv_got, tv_exp, 16, "hash matches official test vector");
 }
 
 /* -----------------------------------------------------------------------

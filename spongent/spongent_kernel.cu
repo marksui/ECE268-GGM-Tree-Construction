@@ -49,12 +49,12 @@ void spongent128_upload_tables(void) {
  * -------------------------------------------------------------------- */
 __device__ static inline
 int gpu_get_bit(const uint8_t state[SPONGENT128_STATE_BYTES], int i) {
-    return (state[i >> 3] >> (7 - (i & 7))) & 1;
+    return (state[i >> 3] >> (i & 7)) & 1;       /* LSB-first */
 }
 __device__ static inline
 void gpu_set_bit(uint8_t state[SPONGENT128_STATE_BYTES], int i, int v) {
-    int byte = i >> 3, bit = 7 - (i & 7);
-    state[byte] = (uint8_t)((state[byte] & ~(1 << bit)) | (v << bit));
+    int byte = i >> 3, bit = i & 7;               /* LSB-first */
+    state[byte] = (uint8_t)((state[byte] & ~(1u << bit)) | ((v & 1u) << bit));
 }
 
 /* -----------------------------------------------------------------------
@@ -65,9 +65,13 @@ __device__
 static void gpu_permute(uint8_t state[SPONGENT128_STATE_BYTES]) {
     uint8_t lc = SPONGENT128_LFSR_INIT;
     for (int r = 0; r < SPONGENT128_NR_ROUNDS; r++) {
-        /* AddRoundConstant */
-        state[0]  ^= (uint8_t)(lc << 1);
-        state[16] ^= (uint8_t)(lc & 0x7F);
+        /* AddRoundConstant: lc into bits 0..6 of state[0]; reverse_byte(lc) into state[16] */
+        uint8_t rlc = lc;
+        rlc = (uint8_t)(((rlc & 0xF0u) >> 4) | ((rlc & 0x0Fu) << 4));
+        rlc = (uint8_t)(((rlc & 0xCCu) >> 2) | ((rlc & 0x33u) << 2));
+        rlc = (uint8_t)(((rlc & 0xAAu) >> 1) | ((rlc & 0x55u) << 1));
+        state[0]  ^= lc;
+        state[16] ^= rlc;
 
         /* sBoxLayer — use constant-memory S-box */
         for (int i = 0; i < SPONGENT128_STATE_BYTES; i++) {
@@ -82,9 +86,9 @@ static void gpu_permute(uint8_t state[SPONGENT128_STATE_BYTES]) {
             gpu_set_bit(tmp, d_perm[i], gpu_get_bit(state, i));
         for (int i = 0; i < SPONGENT128_STATE_BYTES; i++) state[i] = tmp[i];
 
-        /* LFSR step */
-        uint8_t fb = (uint8_t)(((lc >> 6) ^ lc) & 1);
-        lc = (uint8_t)(((lc << 1) & 0x7F) | fb);
+        /* LFSR step: feedback = bit6 XOR bit5, shift-left */
+        uint8_t fb = (uint8_t)(((lc >> 6) ^ (lc >> 5)) & 1u);
+        lc = (uint8_t)(((lc << 1) & 0x7Fu) | fb);
     }
 }
 

@@ -1,38 +1,44 @@
 # Makefile — GGM PRF Tree Project (EC268)
 #
 # CPU tests (gcc, no CUDA needed):
-#   make test_ggm        GGM tree framework — Dummy PRF, no PRF deps
+#   make all             run both CPU test suites
+#   make test_ggm        GGM tree framework (Dummy PRF)
 #   make test_spongent   Spongent-128 + GGM tree
 #
-# GPU build (nvcc required):
-#   make spongent_gpu    Compile spongent .cu files to a GPU-ready object
+# GPU builds (nvcc required):
+#   make test_ggm_gpu    Spongent CPU vs GPU comparison test
+#   make test_keccak     Keccak NIST KAT + 10k CPU/GPU equivalence test
+#   make gpu_all         build all GPU test binaries
 #
-# Member A:
-#   make test_keccak     Uncomment block below once keccak/ is implemented
+# Override GPU arch (default sm_70 = Datahub V100):
+#   make gpu_all GPU_ARCH=sm_80
 
-CC     = gcc
-NVCC   = nvcc
-CFLAGS = -std=c11 -Wall -Wextra -Wpedantic -O2 -Icommon -Ispongent -Ikeccak
+CC        = gcc
+NVCC      = nvcc
+CFLAGS    = -std=c11 -Wall -Wextra -Wpedantic -O2 -Icommon -Ispongent -Ikeccak
 
-# nvcc flags: -x cu forces CUDA compilation, -dc for device-code linking
-NVCCFLAGS = -std=c++11 -O2 -Icommon -Ispongent -Ikeccak \
-            --generate-code arch=compute_70,code=sm_70
+GPU_ARCH ?= sm_70
+NVCCFLAGS = -std=c++11 -O2 -Icommon -Ispongent -Ikeccak -Igpu \
+            --generate-code arch=compute_$(subst sm_,,$(GPU_ARCH)),code=$(GPU_ARCH)
 
-BUILD  = build
-COMMON = common/ggm_tree.c common/utils.c
-SPONG_CPU = spongent/spongent.c spongent/spongent_prf.c
-SPONG_GPU = spongent/spongent_kernel.cu
-GGM_GPU = gpu/ggm_tree_gpu.cu
+BUILD      = build
+COMMON     = common/ggm_tree.c common/utils.c
+SPONG_CPU  = spongent/spongent.c spongent/spongent_prf.c
+SPONG_GPU  = spongent/spongent_kernel.cu
+GGM_GPU    = gpu/ggm_tree_gpu.cu
+KECCAK_SRC = keccak/keccak_f1600.cu keccak/keccak_prf.cu
 
-.PHONY: all test_ggm test_spongent spongent_gpu ggm_gpu test_ggm_gpu clean
+.PHONY: all gpu_all test_ggm test_spongent test_ggm_gpu test_keccak clean
 
 all: test_ggm test_spongent
+
+gpu_all: test_ggm_gpu test_keccak
 
 $(BUILD):
 	mkdir -p $(BUILD)
 
 # -----------------------------------------------------------------------
-# GGM tree tests — pure C, no PRF dependency
+# CPU: GGM tree framework (Dummy PRF)
 # -----------------------------------------------------------------------
 $(BUILD)/test_ggm: tests/test_ggm.c $(COMMON) | $(BUILD)
 	$(CC) $(CFLAGS) $^ -o $@
@@ -41,7 +47,7 @@ test_ggm: $(BUILD)/test_ggm
 	./$(BUILD)/test_ggm
 
 # -----------------------------------------------------------------------
-# Spongent tests — compiled with gcc (CUDA shim strips __host__/__device__)
+# CPU: Spongent-128 + GGM tree
 # -----------------------------------------------------------------------
 $(BUILD)/test_spongent: tests/test_spongent.c $(COMMON) $(SPONG_CPU) | $(BUILD)
 	$(CC) $(CFLAGS) $^ -o $@
@@ -50,34 +56,31 @@ test_spongent: $(BUILD)/test_spongent
 	./$(BUILD)/test_spongent
 
 # -----------------------------------------------------------------------
-# Spongent GPU object (nvcc) — Member C links this into the GPU tree binary
+# GPU: Spongent CPU vs GPU comparison (Member B + C)
 # -----------------------------------------------------------------------
-$(BUILD)/spongent_gpu.o: $(SPONG_GPU) | $(BUILD)
-	$(NVCC) $(NVCCFLAGS) -dc $< -o $@
-
-spongent_gpu: $(BUILD)/spongent_gpu.o
-	@echo "Spongent GPU object built: $(BUILD)/spongent_gpu.o"
+$(BUILD)/spongent_gpu.o: $(SPONG_GPU) $(SPONG_CPU) | $(BUILD)
+	$(NVCC) $(NVCCFLAGS) -dc $^ -o $@
 
 $(BUILD)/ggm_tree_gpu.o: $(GGM_GPU) gpu/ggm_tree_gpu.cuh | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) -dc $< -o $@
 
-ggm_gpu: $(BUILD)/ggm_tree_gpu.o $(BUILD)/spongent_gpu.o
-	@echo "GGM GPU objects built in $(BUILD)/"
-
-$(BUILD)/test_ggm_gpu: tests/test_ggm_gpu.cu $(BUILD)/ggm_tree_gpu.o $(BUILD)/spongent_gpu.o | $(BUILD)
+$(BUILD)/test_ggm_gpu: tests/test_ggm_gpu.cu \
+                        $(BUILD)/ggm_tree_gpu.o \
+                        $(BUILD)/spongent_gpu.o \
+                        $(COMMON) | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@
 
 test_ggm_gpu: $(BUILD)/test_ggm_gpu
 	./$(BUILD)/test_ggm_gpu
 
 # -----------------------------------------------------------------------
-# Keccak tests — uncomment once keccak/ is implemented (Member A)
+# GPU: Keccak NIST KAT + 10k CPU/GPU equivalence (Member A)
 # -----------------------------------------------------------------------
-# KECCAK = keccak/keccak_f1600.cu keccak/keccak_prf.cu
-# $(BUILD)/test_keccak: tests/test_keccak.c $(COMMON) $(KECCAK) | $(BUILD)
-# 	$(CC) $(CFLAGS) $^ -o $@
-# test_keccak: $(BUILD)/test_keccak
-# 	./$(BUILD)/test_keccak
+$(BUILD)/test_keccak: tests/test_keccak.cu $(KECCAK_SRC) | $(BUILD)
+	$(NVCC) $(NVCCFLAGS) $^ -o $@
+
+test_keccak: $(BUILD)/test_keccak
+	./$(BUILD)/test_keccak
 
 # -----------------------------------------------------------------------
 clean:
