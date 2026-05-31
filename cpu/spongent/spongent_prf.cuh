@@ -22,12 +22,16 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "../common/prf_interface.h"
+#include "../../common/prf_interface.h"
 
 #ifndef __CUDACC__
   #define __host__
   #define __device__
   #define __global__
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 /*
@@ -70,3 +74,7 @@ void spongent128_upload_tables(void);
 
 /* CPU-side prf_t vtable for ggm_tree_build(). */
 extern const prf_t SPONGENT128_PRF;
+
+#ifdef __cplusplus
+}
+#endif

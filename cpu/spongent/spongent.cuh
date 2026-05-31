@@ -46,6 +46,10 @@
  * Building blocks  (__host__ __device__ — run on CPU or GPU thread)
  * -------------------------------------------------------------------- */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Advance the 7-bit LFSR one step. Poly: x^7 + x + 1. */
 __host__ __device__
 uint8_t spongent128_lfsr_step(uint8_t state);
@@ -75,3 +79,7 @@ void spongent128_permute(uint8_t state[SPONGENT128_STATE_BYTES]);
 __host__ __device__
 void spongent128_hash(const uint8_t *msg, size_t msg_len,
                       uint8_t digest[SPONGENT128_HASH_BYTES]);
+
+#ifdef __cplusplus
+}
+#endif

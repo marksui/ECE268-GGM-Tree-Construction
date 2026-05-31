@@ -15,19 +15,24 @@
 
 CC        = gcc
 NVCC      = nvcc
-CFLAGS    = -std=c11 -Wall -Wextra -Wpedantic -O2 -Icommon -Ispongent -Ikeccak
+CFLAGS    = -std=c11 -Wall -Wextra -Wpedantic -O2 \
+            -Icpu -Icommon -Icpu/spongent -Icpu/keccak
 
 GPU_ARCH ?= sm_70
-NVCCFLAGS = -std=c++11 -O2 -Icommon -Ispongent -Ikeccak -Igpu \
+NVCCFLAGS = -std=c++11 -O2 -rdc=true \
+            -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak \
             --generate-code arch=compute_$(subst sm_,,$(GPU_ARCH)),code=$(GPU_ARCH)
 
 BUILD      = build
-COMMON     = common/ggm_tree.c common/utils.c
-SPONG_CPU  = spongent/spongent.c spongent/spongent_prf.c
-SPONG_GPU  = spongent/spongent_kernel.cu
+COMMON     = cpu/ggm_tree_cpu.c common/utils.c
+COMMON_OBJS = $(BUILD)/ggm_tree_cpu.o $(BUILD)/utils.o
+SPONG_CPU  = cpu/spongent/spongent.c cpu/spongent/spongent_prf.c
+SPONG_GPU  = gpu/spongent/spongent_kernel.cu
+SPONG_OBJS = $(BUILD)/spongent.o $(BUILD)/spongent_prf.o $(BUILD)/spongent_kernel.o
 GGM_GPU    = gpu/ggm_tree_gpu.cu
-KECCAK_CPU = keccak/keccak_f1600.cu keccak/keccak_prf.cu
-KECCAK_GPU = keccak/keccak_kernel.cu
+KECCAK_CPU = cpu/keccak/keccak_f1600.cu cpu/keccak/keccak_prf.cu
+KECCAK_GPU = gpu/keccak/keccak_kernel.cu
+KECCAK_OBJS = $(BUILD)/keccak_f1600.o $(BUILD)/keccak_prf.o $(BUILD)/keccak_kernel.o
 
 .PHONY: all gpu_all test_ggm test_spongent test_ggm_gpu test_keccak clean
 
@@ -59,20 +64,38 @@ test_spongent: $(BUILD)/test_spongent
 # -----------------------------------------------------------------------
 # GPU: Spongent + Keccak CPU vs GPU comparison
 # -----------------------------------------------------------------------
-$(BUILD)/spongent_gpu.o: $(SPONG_GPU) $(SPONG_CPU) | $(BUILD)
-	$(NVCC) $(NVCCFLAGS) -dc $^ -o $@
+$(BUILD)/ggm_tree_cpu.o: cpu/ggm_tree_cpu.c cpu/ggm_tree_cpu.h common/prf_interface.h | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/keccak_gpu.o: $(KECCAK_GPU) $(KECCAK_CPU) | $(BUILD)
-	$(NVCC) $(NVCCFLAGS) -dc $^ -o $@
+$(BUILD)/utils.o: common/utils.c common/utils.h | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/spongent.o: cpu/spongent/spongent.c cpu/spongent/spongent.cuh | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/spongent_prf.o: cpu/spongent/spongent_prf.c cpu/spongent/spongent_prf.cuh | $(BUILD)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILD)/spongent_kernel.o: $(SPONG_GPU) | $(BUILD)
+	$(NVCC) $(NVCCFLAGS) -dc $< -o $@
+
+$(BUILD)/keccak_f1600.o: cpu/keccak/keccak_f1600.cu cpu/keccak/keccak_f1600.cuh | $(BUILD)
+	$(NVCC) $(NVCCFLAGS) -dc $< -o $@
+
+$(BUILD)/keccak_prf.o: cpu/keccak/keccak_prf.cu cpu/keccak/keccak_prf.cuh | $(BUILD)
+	$(NVCC) $(NVCCFLAGS) -dc $< -o $@
+
+$(BUILD)/keccak_kernel.o: $(KECCAK_GPU) | $(BUILD)
+	$(NVCC) $(NVCCFLAGS) -dc $< -o $@
 
 $(BUILD)/ggm_tree_gpu.o: $(GGM_GPU) gpu/ggm_tree_gpu.cuh | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) -dc $< -o $@
 
 $(BUILD)/test_ggm_gpu: tests/test_ggm_gpu.cu \
                         $(BUILD)/ggm_tree_gpu.o \
-                        $(BUILD)/spongent_gpu.o \
-                        $(BUILD)/keccak_gpu.o \
-                        $(COMMON) | $(BUILD)
+                        $(COMMON_OBJS) \
+                        $(SPONG_OBJS) \
+                        $(KECCAK_OBJS) | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@
 
 test_ggm_gpu: $(BUILD)/test_ggm_gpu
@@ -81,7 +104,7 @@ test_ggm_gpu: $(BUILD)/test_ggm_gpu
 # -----------------------------------------------------------------------
 # GPU: Keccak NIST KAT + 10k CPU/GPU equivalence
 # -----------------------------------------------------------------------
-$(BUILD)/test_keccak: tests/test_keccak.cu $(KECCAK_CPU) | $(BUILD)
+$(BUILD)/test_keccak: tests/test_keccak.cu $(KECCAK_OBJS) | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@
 
 test_keccak: $(BUILD)/test_keccak

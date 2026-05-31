@@ -17,8 +17,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "spongent.cuh"
-#include "spongent_prf.cuh"
+#include "../../cpu/spongent/spongent.cuh"
+#include "../../cpu/spongent/spongent_prf.cuh"
 
 #define SEED_BYTES    SPONGENT128_HASH_BYTES   /* 16 */
 #define SPONGENT128_B 136

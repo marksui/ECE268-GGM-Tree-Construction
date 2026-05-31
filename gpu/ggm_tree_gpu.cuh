@@ -3,7 +3,7 @@
  * gpu/ggm_tree_gpu.cuh
  *
  * GPU GGM tree builder — flat BFS layout, level-by-level expansion.
- * Layout matches common/ggm_tree.c: node (level l, index i) is at
+ * Layout matches cpu/ggm_tree_cpu.c: node (level l, index i) is at
  * flat index (2^l - 1 + i).
  *
  * Two PRF backends are available:
@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "../common/ggm_tree.h"
+#include "../cpu/ggm_tree_cpu.h"
 
 typedef struct {
     uint8_t *d_data;    /* device memory, flat BFS tree */

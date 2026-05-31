@@ -14,11 +14,11 @@
 #include <string.h>
 
 #include "../gpu/ggm_tree_gpu.cuh"
-#include "../common/ggm_tree.h"
-#include "../spongent/spongent.cuh"
-#include "../spongent/spongent_prf.cuh"
-#include "../keccak/keccak_f1600.cuh"
-#include "../keccak/keccak_prf.cuh"
+#include "../cpu/ggm_tree_cpu.h"
+#include "../cpu/spongent/spongent.cuh"
+#include "../cpu/spongent/spongent_prf.cuh"
+#include "../cpu/keccak/keccak_f1600.cuh"
+#include "../cpu/keccak/keccak_prf.cuh"
 
 static int tests_run = 0, tests_pass = 0;
 #define PASS(name) do { printf("  PASS  %s\n", name); tests_pass++; tests_run++; } while(0)

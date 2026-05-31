@@ -4,16 +4,16 @@
  * Builds a complete GGM tree on the GPU, level by level.
  * Supports both Spongent-128 and Keccak-f1600 expand kernels.
  *
- * Memory layout matches common/ggm_tree.c (flat BFS):
+ * Memory layout matches cpu/ggm_tree_cpu.c (flat BFS):
  *   Node (level l, index i) is at flat index (2^l - 1 + i).
  */
 
 #include <cuda_runtime.h>
 #include "ggm_tree_gpu.cuh"
-#include "../spongent/spongent.cuh"
-#include "../spongent/spongent_prf.cuh"
-#include "../keccak/keccak_f1600.cuh"
-#include "../keccak/keccak_prf.cuh"
+#include "../cpu/spongent/spongent.cuh"
+#include "../cpu/spongent/spongent_prf.cuh"
+#include "../cpu/keccak/keccak_f1600.cuh"
+#include "../cpu/keccak/keccak_prf.cuh"
 
 #define THREADS_PER_BLOCK 256
 
@@ -133,7 +133,10 @@ int ggm_gpu_tree_copy_to_host(const ggm_gpu_tree_t *tree,
     if (out_bytes < bytes) return -1;
 
     cudaError_t err = cudaMemcpy(out, tree->d_data, bytes, cudaMemcpyDeviceToHost);
-    return (err == cudaSuccess) ? 0 : -1;
+    if (err == cudaSuccess) {
+        return 0;
+    }
+    return -1;
 }
 
 /* -----------------------------------------------------------------------

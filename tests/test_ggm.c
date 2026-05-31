@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "../common/ggm_tree.h"
+#include "../cpu/ggm_tree_cpu.h"
 #include "../common/utils.h"
 
 static void dummy_expand(const uint8_t *seed, size_t seed_len,

@@ -13,9 +13,9 @@
 #include <string.h>
 #include <stdint.h>
 
-#include "../spongent/spongent.cuh"
-#include "../spongent/spongent_prf.cuh"
-#include "../common/ggm_tree.h"
+#include "../cpu/spongent/spongent.cuh"
+#include "../cpu/spongent/spongent_prf.cuh"
+#include "../cpu/ggm_tree_cpu.h"
 #include "../common/utils.h"
 
 /* -----------------------------------------------------------------------

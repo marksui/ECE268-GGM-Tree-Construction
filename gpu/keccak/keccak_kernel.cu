@@ -16,8 +16,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "keccak_f1600.cuh"
-#include "keccak_prf.cuh"
+#include "../../cpu/keccak/keccak_f1600.cuh"
+#include "../../cpu/keccak/keccak_prf.cuh"
 
 #define SEED_BYTES KECCAK1600_HASH_BYTES   /* 32 */
 

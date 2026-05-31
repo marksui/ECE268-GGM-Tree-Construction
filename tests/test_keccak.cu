@@ -12,8 +12,8 @@
 #include <time.h>
 #include <stdbool.h> // Ensure you have this if using C-style booleans
 // Include your Keccak interfaces
-#include "../keccak/keccak_f1600.cuh"
-#include "../keccak/keccak_prf.cuh"
+#include "../cpu/keccak/keccak_f1600.cuh"
+#include "../cpu/keccak/keccak_prf.cuh"
 
 #define NUM_EXHAUSTIVE_TESTS 10000
 

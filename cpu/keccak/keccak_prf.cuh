@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "../common/prf_interface.h"
+#include "../../common/prf_interface.h"
 
 #ifndef __CUDACC__
   #define __host__
