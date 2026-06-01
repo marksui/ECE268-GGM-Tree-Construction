@@ -16,9 +16,34 @@
  * GPU constant memory tables (declared here, extern'd by keccak_kernel.cu)
  * -------------------------------------------------------------------- */
 #ifdef __CUDACC__
-__device__ __constant__ uint64_t d_RC[24];
-__device__ __constant__ int      d_RHO[25];
-__device__ __constant__ int      d_PI[25];
+__device__ __constant__ uint64_t d_RC[24] = {
+    0x0000000000000001ULL, 0x0000000000008082ULL,
+    0x800000000000808AULL, 0x8000000080008000ULL,
+    0x000000000000808BULL, 0x0000000080000001ULL,
+    0x8000000080008081ULL, 0x8000000000008009ULL,
+    0x000000000000008AULL, 0x0000000000000088ULL,
+    0x0000000080008009ULL, 0x000000008000000AULL,
+    0x000000008000808BULL, 0x800000000000008BULL,
+    0x8000000000008089ULL, 0x8000000000008003ULL,
+    0x8000000000008002ULL, 0x8000000000000080ULL,
+    0x000000000000800AULL, 0x800000008000000AULL,
+    0x8000000080008081ULL, 0x8000000000008080ULL,
+    0x0000000080000001ULL, 0x8000000080008008ULL
+};
+__device__ __constant__ int d_RHO[25] = {
+     0,  1, 62, 28, 27,
+    36, 44,  6, 55, 20,
+     3, 10, 43, 25, 39,
+    41, 45, 15, 21,  8,
+    18,  2, 61, 56, 14
+};
+__device__ __constant__ int d_PI[25] = {
+     0, 10, 20,  5, 15,
+    16,  1, 11, 21,  6,
+     7, 17,  2, 12, 22,
+    23,  8, 18,  3, 13,
+    14, 24,  9, 19,  4
+};
 #endif
 
 /* -----------------------------------------------------------------------
@@ -161,8 +186,6 @@ void keccak1600_hash(const uint8_t *msg, size_t msg_len,
 #ifdef __CUDACC__
 void keccak_f1600_init_cuda(void)
 {
-    cudaMemcpyToSymbol(d_RC,  RC,  sizeof(RC));
-    cudaMemcpyToSymbol(d_RHO, RHO, sizeof(RHO));
-    cudaMemcpyToSymbol(d_PI,  PI,  sizeof(PI));
+    /* Tables are initialized in device constant memory at compile time. */
 }
 #endif

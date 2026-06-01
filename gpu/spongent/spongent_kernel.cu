@@ -7,9 +7,7 @@
  * Everything else (spongent.c, spongent_prf.c) compiles with gcc.
  *
  * What lives here:
- *   - d_perm : GPU constant memory pLayer table (uploaded once via
- *              spongent128_upload_tables before any kernel launch)
- *   - spongent128_upload_tables() : host function to push table to GPU
+ *   - spongent128_upload_tables() : kept for the GPU tree API
  *   - spongent_expand_level : __global__ kernel, one thread per node
  *
  * Member C links this object into gpu/ggm_tree_gpu.cu.
@@ -27,21 +25,8 @@
  * GPU constant memory tables
  * Uploading once avoids repeated recomputation on every thread.
  * -------------------------------------------------------------------- */
-__device__ __constant__ uint8_t d_perm[SPONGENT128_B];
-__device__ __constant__ uint8_t d_sbox[16];
-
 void spongent128_upload_tables(void) {
-    /* pLayer table: p(i) = (34 * i) mod 135, p(135) = 135 */
-    uint8_t h_perm[SPONGENT128_B];
-    for (int i = 0; i < SPONGENT128_B - 1; i++)
-        h_perm[i] = (uint8_t)((i * 34) % (SPONGENT128_B - 1));
-    h_perm[SPONGENT128_B - 1] = SPONGENT128_B - 1;
-    cudaMemcpyToSymbol(d_perm, h_perm, sizeof(h_perm));
-
-    /* PRESENT S-box */
-    uint8_t h_sbox[16] = {0xE,0xD,0xB,0x0, 0x2,0x1,0x4,0xF,
-                          0x7,0xA,0x8,0x5, 0x9,0xC,0x3,0x6};
-    cudaMemcpyToSymbol(d_sbox, h_sbox, sizeof(h_sbox));
+    /* No upload needed. The kernel computes the small tables directly. */
 }
 
 /* -----------------------------------------------------------------------
@@ -57,9 +42,31 @@ void gpu_set_bit(uint8_t state[SPONGENT128_STATE_BYTES], int i, int v) {
     state[byte] = (uint8_t)((state[byte] & ~(1u << bit)) | ((v & 1u) << bit));
 }
 
+__device__ static inline
+uint8_t gpu_sbox(uint8_t x) {
+    switch (x & 0xFu) {
+        case 0x0: return 0xE;
+        case 0x1: return 0xD;
+        case 0x2: return 0xB;
+        case 0x3: return 0x0;
+        case 0x4: return 0x2;
+        case 0x5: return 0x1;
+        case 0x6: return 0x4;
+        case 0x7: return 0xF;
+        case 0x8: return 0x7;
+        case 0x9: return 0xA;
+        case 0xA: return 0x8;
+        case 0xB: return 0x5;
+        case 0xC: return 0x9;
+        case 0xD: return 0xC;
+        case 0xE: return 0x3;
+        default:  return 0x6;
+    }
+}
+
 /* -----------------------------------------------------------------------
- * GPU-side permutation (uses constant-memory tables)
- * Mirrors spongent128_permute() in spongent.c but reads from d_perm/d_sbox.
+ * GPU-side permutation.
+ * Mirrors spongent128_permute() in spongent.c.
  * -------------------------------------------------------------------- */
 __device__
 static void gpu_permute(uint8_t state[SPONGENT128_STATE_BYTES]) {
@@ -77,13 +84,20 @@ static void gpu_permute(uint8_t state[SPONGENT128_STATE_BYTES]) {
         for (int i = 0; i < SPONGENT128_STATE_BYTES; i++) {
             uint8_t hi = (state[i] >> 4) & 0xF;
             uint8_t lo =  state[i]       & 0xF;
-            state[i] = (uint8_t)((d_sbox[hi] << 4) | d_sbox[lo]);
+            state[i] = (uint8_t)((gpu_sbox(hi) << 4) | gpu_sbox(lo));
         }
 
         /* pLayer — use constant-memory permutation table */
         uint8_t tmp[SPONGENT128_STATE_BYTES] = {0};
-        for (int i = 0; i < SPONGENT128_B; i++)
-            gpu_set_bit(tmp, d_perm[i], gpu_get_bit(state, i));
+        for (int i = 0; i < SPONGENT128_B; i++) {
+            int pos;
+            if (i == SPONGENT128_B - 1) {
+                pos = SPONGENT128_B - 1;
+            } else {
+                pos = (i * 34) % (SPONGENT128_B - 1);
+            }
+            gpu_set_bit(tmp, pos, gpu_get_bit(state, i));
+        }
         for (int i = 0; i < SPONGENT128_STATE_BYTES; i++) state[i] = tmp[i];
 
         /* LFSR step: feedback = bit6 XOR bit5, shift-left */
