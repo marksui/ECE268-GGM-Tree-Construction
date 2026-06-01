@@ -62,6 +62,11 @@ __global__
 void spongent_expand_level(const uint8_t *parents,
                            uint8_t       *children,
                            size_t         N);
+
+int spongent_launch_expand_level(const uint8_t *parents,
+                                 uint8_t       *children,
+                                 size_t         N,
+                                 int            threads_per_block);
 #endif
 
 /*

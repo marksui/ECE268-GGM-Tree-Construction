@@ -101,13 +101,8 @@ int ggm_gpu_tree_build_spongent(ggm_gpu_tree_t *tree,
         size_t N = (size_t)1 << level;
         uint8_t *parents = ggm_gpu_tree_get_node(tree, level, 0);
         uint8_t *children = ggm_gpu_tree_get_node(tree, level + 1, 0);
-        int blocks = (int)((N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK);
-
-        spongent_expand_level<<<blocks, THREADS_PER_BLOCK>>>(parents, children, N);
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) return cleanup_fail_msg(tree, "spongent kernel launch", err);
-        err = cudaDeviceSynchronize();
-        if (err != cudaSuccess) return cleanup_fail_msg(tree, "spongent kernel sync", err);
+        rc = spongent_launch_expand_level(parents, children, N, THREADS_PER_BLOCK);
+        if (rc != 0) return cleanup_fail(tree);
     }
 
     return 0;
@@ -129,13 +124,8 @@ int ggm_gpu_tree_build_keccak(ggm_gpu_tree_t *tree,
         size_t N = (size_t)1 << level;
         uint8_t *parents = ggm_gpu_tree_get_node(tree, level, 0);
         uint8_t *children = ggm_gpu_tree_get_node(tree, level + 1, 0);
-        int blocks = (int)((N + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK);
-
-        keccak_expand_level<<<blocks, THREADS_PER_BLOCK>>>(parents, children, N);
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) return cleanup_fail_msg(tree, "keccak kernel launch", err);
-        err = cudaDeviceSynchronize();
-        if (err != cudaSuccess) return cleanup_fail_msg(tree, "keccak kernel sync", err);
+        rc = keccak_launch_expand_level(parents, children, N, THREADS_PER_BLOCK);
+        if (rc != 0) return cleanup_fail(tree);
     }
 
     return 0;

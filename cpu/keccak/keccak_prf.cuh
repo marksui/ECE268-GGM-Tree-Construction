@@ -48,6 +48,11 @@ __global__
 void keccak_expand_level(const uint8_t *parents,
                          uint8_t       *children,
                          size_t         N);
+
+int keccak_launch_expand_level(const uint8_t *parents,
+                               uint8_t       *children,
+                               size_t         N,
+                               int            threads_per_block);
 #endif
 
 /* CPU-side prf_t vtable for ggm_tree_build(). */

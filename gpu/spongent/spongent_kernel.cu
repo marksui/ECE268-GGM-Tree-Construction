@@ -15,6 +15,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 #include "../../cpu/spongent/spongent.cuh"
 #include "../../cpu/spongent/spongent_prf.cuh"
 
@@ -158,4 +159,27 @@ void spongent_expand_level(const uint8_t *parents,
     uint8_t       *right  = children + (2*i+1) * SEED_BYTES;
 
     gpu_expand(parent, left, right);
+}
+
+int spongent_launch_expand_level(const uint8_t *parents,
+                                 uint8_t       *children,
+                                 size_t         N,
+                                 int            threads_per_block)
+{
+    int blocks = (int)((N + threads_per_block - 1) / threads_per_block);
+    spongent_expand_level<<<blocks, threads_per_block>>>(parents, children, N);
+
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("CUDA error at spongent kernel launch: %s\n", cudaGetErrorString(err));
+        return -1;
+    }
+
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        printf("CUDA error at spongent kernel sync: %s\n", cudaGetErrorString(err));
+        return -1;
+    }
+
+    return 0;
 }
