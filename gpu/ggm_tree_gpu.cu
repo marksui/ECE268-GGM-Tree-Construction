@@ -9,6 +9,7 @@
  */
 
 #include <cuda_runtime.h>
+#include <stdio.h>
 #include "ggm_tree_gpu.cuh"
 #include "../cpu/spongent/spongent.cuh"
 #include "../cpu/spongent/spongent_prf.cuh"
@@ -42,6 +43,11 @@ static int cleanup_fail(ggm_gpu_tree_t *tree) {
     return -1;
 }
 
+static int cleanup_fail_msg(ggm_gpu_tree_t *tree, const char *where, cudaError_t err) {
+    printf("CUDA error at %s: %s\n", where, cudaGetErrorString(err));
+    return cleanup_fail(tree);
+}
+
 /* -----------------------------------------------------------------------
  * Shared internal builder — takes a kernel function pointer.
  * expand_kernel  : __global__ fn with signature (parents, children, N)
@@ -68,15 +74,15 @@ static int ggm_gpu_tree_build_impl(ggm_gpu_tree_t  *tree,
     size_t bytes = nodes * seed_bytes;
 
     cudaError_t err = cudaMalloc((void **)&tree->d_data, bytes);
-    if (err != cudaSuccess) return cleanup_fail(tree);
+    if (err != cudaSuccess) return cleanup_fail_msg(tree, "cudaMalloc", err);
 
     err = cudaMemcpy(tree->d_data, root_seed, seed_bytes, cudaMemcpyHostToDevice);
-    if (err != cudaSuccess) return cleanup_fail(tree);
+    if (err != cudaSuccess) return cleanup_fail_msg(tree, "copy root to device", err);
 
     if (upload_tables) {
         upload_tables();
         err = cudaGetLastError();
-        if (err != cudaSuccess) return cleanup_fail(tree);
+        if (err != cudaSuccess) return cleanup_fail_msg(tree, "upload constant tables", err);
     }
 
     for (int level = 0; level < depth; level++) {
@@ -87,9 +93,9 @@ static int ggm_gpu_tree_build_impl(ggm_gpu_tree_t  *tree,
 
         kernel<<<blocks, THREADS_PER_BLOCK>>>(parents, children, N);
         err = cudaGetLastError();
-        if (err != cudaSuccess) return cleanup_fail(tree);
+        if (err != cudaSuccess) return cleanup_fail_msg(tree, "kernel launch", err);
         err = cudaDeviceSynchronize();
-        if (err != cudaSuccess) return cleanup_fail(tree);
+        if (err != cudaSuccess) return cleanup_fail_msg(tree, "kernel sync", err);
     }
 
     return 0;
@@ -136,6 +142,7 @@ int ggm_gpu_tree_copy_to_host(const ggm_gpu_tree_t *tree,
     if (err == cudaSuccess) {
         return 0;
     }
+    printf("CUDA error at copy tree to host: %s\n", cudaGetErrorString(err));
     return -1;
 }
 

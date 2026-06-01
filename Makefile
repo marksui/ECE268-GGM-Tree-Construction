@@ -22,7 +22,8 @@ CFLAGS    = -std=c11 -Wall -Wextra -Wpedantic -O2 \
 GPU_ARCH ?= sm_70
 NVCCFLAGS = -std=c++11 -O2 -rdc=true \
             -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak \
-            --generate-code arch=compute_$(subst sm_,,$(GPU_ARCH)),code=$(GPU_ARCH)
+            --generate-code arch=compute_$(subst sm_,,$(GPU_ARCH)),code=$(GPU_ARCH) \
+            --generate-code arch=compute_$(subst sm_,,$(GPU_ARCH)),code=compute_$(subst sm_,,$(GPU_ARCH))
 
 BUILD      = build
 COMMON     = cpu/ggm_tree_cpu.c common/utils.c

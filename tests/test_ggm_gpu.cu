@@ -47,8 +47,9 @@ static void test_spongent_depth1_known(void) {
     spongent128_expand(ROOT16, 16, expected_left, expected_right, 16);
 
     ggm_gpu_tree_t gpu_tree = {0};
-    CHECK(ggm_gpu_tree_build_spongent(&gpu_tree, ROOT16, 1) == 0,
-          "spongent gpu build depth=1");
+    int rc = ggm_gpu_tree_build_spongent(&gpu_tree, ROOT16, 1);
+    CHECK(rc == 0, "spongent gpu build depth=1");
+    if (rc != 0) { ggm_gpu_tree_free(&gpu_tree); return; }
 
     size_t total = ggm_gpu_tree_total_nodes(1);
     uint8_t *h = (uint8_t *)malloc(total * 16);
@@ -79,8 +80,9 @@ static void test_spongent_cpu_gpu_match(void) {
           "spongent cpu build depth=4");
 
     ggm_gpu_tree_t gpu_tree = {0};
-    CHECK(ggm_gpu_tree_build_spongent(&gpu_tree, ROOT16, depth) == 0,
-          "spongent gpu build depth=4");
+    int rc = ggm_gpu_tree_build_spongent(&gpu_tree, ROOT16, depth);
+    CHECK(rc == 0, "spongent gpu build depth=4");
+    if (rc != 0) { ggm_tree_free(&cpu_tree); ggm_gpu_tree_free(&gpu_tree); return; }
 
     uint8_t *gpu_h = (uint8_t *)malloc(total * 16);
     CHECK(gpu_h != NULL, "malloc gpu host buffer");
@@ -117,8 +119,9 @@ static void test_keccak_depth1_known(void) {
     keccak1600_expand(ROOT32, 32, expected_left, expected_right, 32);
 
     ggm_gpu_tree_t gpu_tree = {0};
-    CHECK(ggm_gpu_tree_build_keccak(&gpu_tree, ROOT32, 1) == 0,
-          "keccak gpu build depth=1");
+    int rc = ggm_gpu_tree_build_keccak(&gpu_tree, ROOT32, 1);
+    CHECK(rc == 0, "keccak gpu build depth=1");
+    if (rc != 0) { ggm_gpu_tree_free(&gpu_tree); return; }
 
     size_t total = ggm_gpu_tree_total_nodes(1);
     uint8_t *h = (uint8_t *)malloc(total * 32);
@@ -149,8 +152,9 @@ static void test_keccak_cpu_gpu_match(void) {
           "keccak cpu build depth=4");
 
     ggm_gpu_tree_t gpu_tree = {0};
-    CHECK(ggm_gpu_tree_build_keccak(&gpu_tree, ROOT32, depth) == 0,
-          "keccak gpu build depth=4");
+    int rc = ggm_gpu_tree_build_keccak(&gpu_tree, ROOT32, depth);
+    CHECK(rc == 0, "keccak gpu build depth=4");
+    if (rc != 0) { ggm_tree_free(&cpu_tree); ggm_gpu_tree_free(&gpu_tree); return; }
 
     uint8_t *gpu_h = (uint8_t *)malloc(total * 32);
     CHECK(gpu_h != NULL, "malloc gpu host buffer");

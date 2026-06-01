@@ -93,8 +93,13 @@ void keccakf1600_permute(uint64_t state[25])
 
         /* Rho + Pi */
         #pragma unroll
-        for (int i = 0; i < 25; i++)
+        for (int i = 0; i < 25; i++) {
+#ifdef __CUDA_ARCH__
+            tmp[d_PI[i]] = ROTL64(state[i], d_RHO[i]);
+#else
             tmp[PI[i]] = ROTL64(state[i], RHO[i]);
+#endif
+        }
 
         /* Chi */
         #pragma unroll
@@ -104,7 +109,11 @@ void keccakf1600_permute(uint64_t state[25])
                 state[j+i] = tmp[j+i] ^ ((~tmp[j+(i+1)%5]) & tmp[j+(i+2)%5]);
 
         /* Iota */
+#ifdef __CUDA_ARCH__
+        state[0] ^= d_RC[r];
+#else
         state[0] ^= RC[r];
+#endif
     }
 }
 
