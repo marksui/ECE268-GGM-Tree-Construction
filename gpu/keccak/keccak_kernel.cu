@@ -22,13 +22,37 @@
 
 #define SEED_BYTES KECCAK1600_HASH_BYTES   /* 32 */
 
-/* -----------------------------------------------------------------------
- * GPU constant memory tables
- * Declared in keccak_f1600.cu; extern'd here so the kernel can read them.
- * -------------------------------------------------------------------- */
-extern __device__ __constant__ uint64_t d_RC[24];
-extern __device__ __constant__ int      d_RHO[25];
-extern __device__ __constant__ int      d_PI[25];
+/* GPU-side Keccak tables. Kept in this file to avoid cross-file device symbols. */
+__device__ __constant__ uint64_t k_RC[24] = {
+    0x0000000000000001ULL, 0x0000000000008082ULL,
+    0x800000000000808AULL, 0x8000000080008000ULL,
+    0x000000000000808BULL, 0x0000000080000001ULL,
+    0x8000000080008081ULL, 0x8000000000008009ULL,
+    0x000000000000008AULL, 0x0000000000000088ULL,
+    0x0000000080008009ULL, 0x000000008000000AULL,
+    0x000000008000808BULL, 0x800000000000008BULL,
+    0x8000000000008089ULL, 0x8000000000008003ULL,
+    0x8000000000008002ULL, 0x8000000000000080ULL,
+    0x000000000000800AULL, 0x800000008000000AULL,
+    0x8000000080008081ULL, 0x8000000000008080ULL,
+    0x0000000080000001ULL, 0x8000000080008008ULL
+};
+
+__device__ __constant__ int k_RHO[25] = {
+     0,  1, 62, 28, 27,
+    36, 44,  6, 55, 20,
+     3, 10, 43, 25, 39,
+    41, 45, 15, 21,  8,
+    18,  2, 61, 56, 14
+};
+
+__device__ __constant__ int k_PI[25] = {
+     0, 10, 20,  5, 15,
+    16,  1, 11, 21,  6,
+     7, 17,  2, 12, 22,
+    23,  8, 18,  3, 13,
+    14, 24,  9, 19,  4
+};
 
 #define GPU_ROTL64(x, y) (((y) == 0) ? (x) : (((x) << (y)) | ((x) >> (64 - (y)))))
 
@@ -55,7 +79,7 @@ __device__ static void gpu_permute(uint64_t state[25])
 
         #pragma unroll
         for (int i = 0; i < 25; i++)
-            tmp[d_PI[i]] = GPU_ROTL64(state[i], d_RHO[i]);
+            tmp[k_PI[i]] = GPU_ROTL64(state[i], k_RHO[i]);
 
         #pragma unroll
         for (int j = 0; j < 25; j += 5)
@@ -63,7 +87,7 @@ __device__ static void gpu_permute(uint64_t state[25])
             for (int i = 0; i < 5; i++)
                 state[j+i] = tmp[j+i] ^ ((~tmp[j+(i+1)%5]) & tmp[j+(i+2)%5]);
 
-        state[0] ^= d_RC[r];
+        state[0] ^= k_RC[r];
     }
 }
 
