@@ -11,15 +11,15 @@
 #   make benchmark       CPU/GPU throughput benchmark
 #   make gpu_all         build all GPU test binaries
 #
-# Override GPU arch (default sm_70 = Datahub V100):
-#   make gpu_all GPU_ARCH=sm_80
+# Override GPU arch (default sm_61 = DSMLP GTX 1080 Ti):
+#   make gpu_all GPU_ARCH=sm_89
 
 CC        = gcc
 NVCC      = nvcc
 CFLAGS    = -std=c11 -Wall -Wextra -Wpedantic -O2 \
             -Icpu -Icommon -Icpu/spongent -Icpu/keccak
 
-GPU_ARCH ?= sm_70
+GPU_ARCH ?= sm_61
 NVCCFLAGS = -std=c++11 -O2 -rdc=true \
             -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak \
             --generate-code arch=compute_$(subst sm_,,$(GPU_ARCH)),code=$(GPU_ARCH) \
