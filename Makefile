@@ -8,6 +8,7 @@
 # GPU builds (nvcc required):
 #   make test_ggm_gpu    Spongent + Keccak CPU vs GPU comparison
 #   make test_keccak     Keccak NIST KAT + 10k CPU/GPU equivalence
+#   make benchmark       CPU/GPU throughput benchmark
 #   make gpu_all         build all GPU test binaries
 #
 # Override GPU arch (default sm_70 = Datahub V100):
@@ -30,11 +31,12 @@ SPONG_CPU  = cpu/spongent/spongent.c cpu/spongent/spongent_prf.c
 SPONG_GPU  = gpu/spongent/spongent_kernel.cu
 SPONG_OBJS = $(BUILD)/spongent.o $(BUILD)/spongent_prf.o $(BUILD)/spongent_kernel.o
 GGM_GPU    = gpu/ggm_tree_gpu.cu
+BENCH      = bench/benchmark_ggm.cu
 KECCAK_CPU = cpu/keccak/keccak_f1600.cu cpu/keccak/keccak_prf.cu
 KECCAK_GPU = gpu/keccak/keccak_kernel.cu
 KECCAK_OBJS = $(BUILD)/keccak_f1600.o $(BUILD)/keccak_prf.o $(BUILD)/keccak_kernel.o
 
-.PHONY: all gpu_all test_ggm test_spongent test_ggm_gpu test_keccak clean
+.PHONY: all gpu_all test_ggm test_spongent test_ggm_gpu test_keccak benchmark clean
 
 all: test_ggm test_spongent
 
@@ -109,6 +111,19 @@ $(BUILD)/test_keccak: tests/test_keccak.cu $(KECCAK_OBJS) | $(BUILD)
 
 test_keccak: $(BUILD)/test_keccak
 	./$(BUILD)/test_keccak
+
+# -----------------------------------------------------------------------
+# Benchmark: CPU/GPU throughput across depths
+# -----------------------------------------------------------------------
+$(BUILD)/benchmark_ggm: $(BENCH) \
+                        $(BUILD)/ggm_tree_gpu.o \
+                        $(COMMON_OBJS) \
+                        $(SPONG_OBJS) \
+                        $(KECCAK_OBJS) | $(BUILD)
+	$(NVCC) $(NVCCFLAGS) $^ -o $@
+
+benchmark: $(BUILD)/benchmark_ggm
+	./$(BUILD)/benchmark_ggm
 
 # -----------------------------------------------------------------------
 clean:
