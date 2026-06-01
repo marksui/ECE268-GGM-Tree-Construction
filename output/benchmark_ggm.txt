@@ -1,0 +1,15 @@
+=== benchmark_ggm depth 8 12 ===
+nvcc -std=c++11 -O2 -rdc=true -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_61,code=compute_61 bench/benchmark_ggm.cu build/ggm_tree_gpu.o build/ggm_tree_cpu.o build/utils.o build/spongent.o build/spongent_prf.o build/spongent_kernel.o build/keccak_f1600.o build/keccak_prf.o build/keccak_kernel.o -o build/benchmark_ggm
+build_exit_code=0
+# gpu: NVIDIA GeForce GTX 1080 Ti
+# repeat=1
+prf,platform,depth,leaves,best_ms,leaves_per_sec
+Spongent,CPU,8,256,508.696,503.25
+Spongent,GPU,8,256,1320.095,193.93
+Keccak,CPU,8,256,1.948,131416.97
+Keccak,GPU,8,256,1.561,164045.06
+Spongent,CPU,12,4096,8358.142,490.06
+Spongent,GPU,12,4096,2041.876,2006.00
+Keccak,CPU,12,4096,24.288,168640.66
+Keccak,GPU,12,4096,1.726,2372679.39
+exit_code=0
