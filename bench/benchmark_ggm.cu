@@ -1,5 +1,5 @@
 /*
- * Simple benchmark for GGM tree construction.
+ * Benchmark for GGM tree construction.
  * It prints CPU vs GPU timing for Spongent and Keccak.
  */
 
