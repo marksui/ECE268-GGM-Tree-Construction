@@ -1,0 +1,21 @@
+nvcc -std=c++11 -O2 -rdc=true -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_61,code=compute_61 bench/benchmark_ggm.cu build/ggm_tree_gpu.o build/ggm_tree_cpu.o build/utils.o build/spongent.o build/spongent_prf.o build/spongent_kernel.o build/keccak_f1600.o build/keccak_prf.o build/keccak_kernel.o -o build/benchmark_ggm
+./build/benchmark_ggm
+# gpu: NVIDIA GeForce GTX 1080
+# repeat=1
+prf,platform,depth,leaves,best_ms,leaves_per_sec
+Spongent,CPU,8,256,371.150,689.75
+Spongent,GPU,8,256,4677.804,54.73
+Keccak,CPU,8,256,1.539,166335.03
+Keccak,GPU,8,256,1.451,176409.15
+Spongent,CPU,12,4096,5920.950,691.78
+Spongent,GPU,12,4096,10428.381,392.77
+Keccak,CPU,12,4096,25.558,160263.80
+Keccak,GPU,12,4096,1.712,2392984.74
+Spongent,CPU,16,65536,94340.846,694.67
+Spongent,GPU,16,65536,30251.153,2166.40
+Keccak,CPU,16,65536,382.259,171443.84
+Keccak,GPU,16,65536,3.851,17019747.40
+Spongent,CPU,20,1048576,1518590.525,690.49
+Spongent,GPU,20,1048576,308489.731,3399.06
+Keccak,CPU,20,1048576,6105.992,171729.02
+Keccak,GPU,20,1048576,40.566,25848538.42
