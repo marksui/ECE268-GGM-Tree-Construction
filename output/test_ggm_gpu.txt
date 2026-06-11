@@ -1,0 +1,54 @@
+=== test_ggm_gpu ===
+nvcc -std=c++11 -O2 -rdc=true -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_61,code=compute_61 -dc gpu/ggm_tree_gpu.cu -o build/ggm_tree_gpu.o
+gcc -std=c11 -Wall -Wextra -Wpedantic -O2 -Icpu -Icommon -Icpu/spongent -Icpu/keccak -c cpu/ggm_tree_cpu.c -o build/ggm_tree_cpu.o
+gcc -std=c11 -Wall -Wextra -Wpedantic -O2 -Icpu -Icommon -Icpu/spongent -Icpu/keccak -c common/utils.c -o build/utils.o
+gcc -std=c11 -Wall -Wextra -Wpedantic -O2 -Icpu -Icommon -Icpu/spongent -Icpu/keccak -c cpu/spongent/spongent.c -o build/spongent.o
+gcc -std=c11 -Wall -Wextra -Wpedantic -O2 -Icpu -Icommon -Icpu/spongent -Icpu/keccak -c cpu/spongent/spongent_prf.c -o build/spongent_prf.o
+nvcc -std=c++11 -O2 -rdc=true -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_61,code=compute_61 -dc gpu/spongent/spongent_kernel.cu -o build/spongent_kernel.o
+nvcc -std=c++11 -O2 -rdc=true -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_61,code=compute_61 -dc cpu/keccak/keccak_f1600.cu -o build/keccak_f1600.o
+cpu/keccak/keccak_f1600.cu(52): warning #177-D: variable "RC" was declared but never referenced
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+
+cpu/keccak/keccak_f1600.cu(68): warning #177-D: variable "RHO" was declared but never referenced
+
+cpu/keccak/keccak_f1600.cu(77): warning #177-D: variable "PI" was declared but never referenced
+
+nvcc -std=c++11 -O2 -rdc=true -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_61,code=compute_61 -dc cpu/keccak/keccak_prf.cu -o build/keccak_prf.o
+nvcc -std=c++11 -O2 -rdc=true -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_61,code=compute_61 -dc gpu/keccak/keccak_kernel.cu -o build/keccak_kernel.o
+nvcc -std=c++11 -O2 -rdc=true -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_61,code=compute_61 tests/test_ggm_gpu.cu build/ggm_tree_gpu.o build/ggm_tree_cpu.o build/utils.o build/spongent.o build/spongent_prf.o build/spongent_kernel.o build/keccak_f1600.o build/keccak_prf.o build/keccak_kernel.o -o build/test_ggm_gpu
+./build/test_ggm_gpu
+=== GPU GGM Tree Tests (Spongent-128 + Keccak-f1600) ===
+
+[Spongent GPU depth-1 spot-check]
+  PASS  spongent gpu build depth=1
+  PASS  malloc host buffer
+  PASS  copy to host
+  PASS  root preserved
+  PASS  left child correct
+  PASS  right child correct
+
+[Spongent CPU vs GPU — depth 4]
+  PASS  spongent cpu build depth=4
+  PASS  spongent gpu build depth=4
+  PASS  malloc gpu host buffer
+  PASS  copy gpu tree to host
+  PASS  all spongent nodes match cpu==gpu
+
+[Keccak GPU depth-1 spot-check]
+  PASS  keccak gpu build depth=1
+  PASS  malloc host buffer
+  PASS  copy to host
+  PASS  root preserved
+  PASS  left child correct
+  PASS  right child correct
+
+[Keccak CPU vs GPU — depth 4]
+  PASS  keccak cpu build depth=4
+  PASS  keccak gpu build depth=4
+  PASS  malloc gpu host buffer
+  PASS  copy gpu tree to host
+  PASS  all keccak nodes match cpu==gpu
+
+=== Results: 22 / 22 passed ===
+exit_code=0
