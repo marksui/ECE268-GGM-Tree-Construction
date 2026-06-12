@@ -98,7 +98,7 @@ throughput, and GPU speedup for different tree depths.
 
 ## How to Use
 
-The normal testing order I used was:
+This is the normal order I used:
 
 ```bash
 make clean
@@ -106,36 +106,33 @@ make all
 make gpu_all
 ```
 
-`make all` runs the CPU tests. `make gpu_all` runs the GPU tests, including the
-CPU vs GPU GGM tree comparison.
-
-Individual tests can also be run like this:
+Some single commands:
 
 ```bash
-make test_ggm        # basic GGM tree CPU test
-make test_spongent   # Spongent CPU test
-make test_ggm_gpu    # CPU vs GPU GGM tree test
-make test_keccak     # Keccak CPU vs GPU test
+make test_ggm
+make test_spongent
+make test_ggm_gpu
+make test_keccak
 ```
 
-For benchmark results:
+Benchmark:
 
 ```bash
 make benchmark
 ```
 
-To choose the tested depths manually:
+Run only the basic depth benchmark:
+
 ```bash
-./build/benchmark_ggm 1 8 12 16 20
+./build/benchmark_ggm 0
 ```
 
-Here `1` is the repeat count. `8 12 16 20` are the GGM tree depths.
-Depth 20 can take longer, especially for the Spongent CPU run.
+The benchmark includes depths 8, 12, 16, and 20. Depth 20 is slow for Spongent CPU.
 
 ## GPU Arch
 
-The default GPU arch is `sm_61`, which is for GTX 1080 Ti in datahub.
-For another GPU, pass `GPU_ARCH` in the make command:
+Default is `sm_61` for GTX 1080 Ti. For a different GPU:
+
 ```bash
-make gpu_all GPU_ARCH=sm_89   # RTX 4070 Ti
+make gpu_all GPU_ARCH=sm_89
 ```
