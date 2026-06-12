@@ -1,0 +1,22 @@
+nneelakanta@dsmlp-jupyter-nneelakanta:~/proj/ECE268-GGM-Tree-Construction$ make benchmark
+nvcc -std=c++11 -O2 -rdc=true -Icpu -Icommon -Icpu/spongent -Icpu/keccak -Igpu -Igpu/spongent -Igpu/keccak --generate-code arch=compute_61,code=sm_61 --generate-code arch=compute_61,code=compute_61 bench/benchmark_ggm.cu build/ggm_tree_gpu.o build/ggm_tree_cpu.o build/utils.o build/spongent.o build/spongent_prf.o build/spongent_kernel.o build/keccak_f1600.o build/keccak_prf.o build/keccak_kernel.o -o build/benchmark_ggm
+./build/benchmark_ggm
+# gpu: NVIDIA GeForce GTX 1080 Ti
+# repeat=1
+prf,platform,depth,leaves,best_ms,leaves_per_sec
+Spongent,CPU,8,256,473.383,540.79
+Spongent,GPU,8,256,55.099,4646.21
+Keccak,CPU,8,256,1.403,182424.50
+Keccak,GPU,8,256,1.340,190997.45
+Spongent,CPU,12,4096,7591.053,539.58
+Spongent,GPU,12,4096,108.553,37732.56
+Keccak,CPU,12,4096,22.868,179113.64
+Keccak,GPU,12,4096,1.902,2153133.47
+Spongent,CPU,16,65536,121013.031,541.56
+Spongent,GPU,16,65536,262.607,249559.06
+Keccak,CPU,16,65536,374.675,174914.46
+Keccak,GPU,16,65536,4.062,16133877.63
+Spongent,CPU,20,1048576,1931305.628,542.94
+Spongent,GPU,20,1048576,1647.254,636559.84
+Keccak,CPU,20,1048576,5881.375,178287.58
+Keccak,GPU,20,1048576,37.685,27824714.60
