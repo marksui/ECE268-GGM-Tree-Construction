@@ -291,7 +291,7 @@ def plot_memory():
 
     ax.set_yscale("log")
     ax.set_xlabel("Tree Depth", labelpad=8)
-    ax.set_ylabel("Time for transfer(ms, log scale)", labelpad=8)
+    ax.set_ylabel("Time(ms, log scale)", labelpad=8)
     ax.set_title("Plot 5 — Memory Transfer Breakdown (GPU compute vs D2H)")
     ax.set_xticks(sp_depths)
     ax.grid(True, which="both", linestyle="--", alpha=0.5)
