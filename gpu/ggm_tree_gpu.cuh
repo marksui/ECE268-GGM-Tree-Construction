@@ -32,6 +32,12 @@ int ggm_gpu_tree_build_spongent(ggm_gpu_tree_t *tree,
                                 const uint8_t  *root_seed,
                                 int             depth);
 
+/* Block-size variant for occupancy sweep benchmark */
+int ggm_gpu_tree_build_spongent_tpb(ggm_gpu_tree_t *tree,
+                                    const uint8_t  *root_seed,
+                                    int             depth,
+                                    int             threads_per_block);
+
 /* Build tree using Keccak-f1600 kernel (32-byte seeds) */
 int ggm_gpu_tree_build_keccak(ggm_gpu_tree_t *tree,
                               const uint8_t  *root_seed,

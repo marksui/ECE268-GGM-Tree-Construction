@@ -138,6 +138,37 @@ int ggm_gpu_tree_build_spongent(ggm_gpu_tree_t *tree,
 }
 
 /* -----------------------------------------------------------------------
+ * Block-size variant — Spongent-128
+ * Same as ggm_gpu_tree_build_spongent but accepts threads_per_block at
+ * runtime. Used by the block-size sensitivity benchmark (Section 2).
+ * -------------------------------------------------------------------- */
+int ggm_gpu_tree_build_spongent_tpb(ggm_gpu_tree_t *tree,
+                                    const uint8_t  *root_seed,
+                                    int             depth,
+                                    int             threads_per_block)
+{
+    int rc = setup_gpu_tree(tree, root_seed, depth,
+                            SPONGENT128_HASH_BYTES,
+                            spongent128_upload_tables);
+    if (rc != 0) return -1;
+
+    for (int level = 0; level < depth; level++) {
+        size_t   N        = (size_t)1 << level;
+        uint8_t *parents  = ggm_gpu_tree_get_node(tree, level,     0);
+        uint8_t *children = ggm_gpu_tree_get_node(tree, level + 1, 0);
+        rc = spongent_launch_expand_level(parents, children, N,
+                                         threads_per_block);
+        if (rc != 0) return cleanup_fail(tree);
+    }
+
+    cudaError_t err = cudaDeviceSynchronize();
+    if (err != cudaSuccess)
+        return cleanup_fail_msg(tree, "spongent tpb final sync", err);
+
+    return 0;
+}
+
+/* -----------------------------------------------------------------------
  * Public API — Keccak-f1600
  * (same single-sync pattern applied for consistency)
  * -------------------------------------------------------------------- */
