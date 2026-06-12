@@ -134,5 +134,5 @@ The benchmark includes depths 8, 12, 16, and 20. Depth 20 is slow for Spongent C
 Default is `sm_61` for GTX 1080 Ti. For a different GPU:
 
 ```bash
-make gpu_all GPU_ARCH=sm_89
+make gpu_all GPU_ARCH=sm_89 #RTX 4070Ti
 ```
