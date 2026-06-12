@@ -1,14 +1,3 @@
-/*
- * tests/test_spongent.c
- *
- * Unit tests for Spongent-128 + GGM tree integration.
- * Compiled with gcc (no nvcc needed) — the CUDA shim in spongent.cuh
- * strips __host__/__device__ tags so everything links as plain C.
- *
- * Build:  make test_spongent
- * Run:    ./build/test_spongent
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -18,9 +7,6 @@
 #include "../cpu/ggm_tree_cpu.h"
 #include "../common/utils.h"
 
-/* -----------------------------------------------------------------------
- * Test harness
- * -------------------------------------------------------------------- */
 static int tests_run = 0, tests_pass = 0;
 
 #define EXPECT(cond, name) do {                                         \
@@ -32,37 +18,28 @@ static int tests_run = 0, tests_pass = 0;
 #define EXPECT_BYTES_EQ(a, b, len, name) \
     EXPECT(bytes_eq((a),(b),(len)) == 0, name)
 
-/* -----------------------------------------------------------------------
- * LFSR sequence
- * -------------------------------------------------------------------- */
 static void test_lfsr(void) {
     printf("\n[LFSR]\n");
     uint8_t s = SPONGENT128_LFSR_INIT;
     printf("  Sequence from 0x%02X: ", s);
     for (int i = 0; i < 12; i++) { printf("0x%02X ", s); s = spongent128_lfsr_step(s); }
     printf("\n");
-    /* Verify first 5 steps against reference Python (joostrijneveld/readable-crypto) */
+
     const uint8_t ref[5] = { 0x7A, 0x74, 0x68, 0x50, 0x21 };
     uint8_t lc = SPONGENT128_LFSR_INIT; int ok = 1;
     for (int i = 0; i < 5; i++) { if (lc != ref[i]) ok = 0; lc = spongent128_lfsr_step(lc); }
     EXPECT(ok, "lfsr_step matches reference sequence");
 }
 
-/* -----------------------------------------------------------------------
- * sBoxLayer — spot-check two nibbles
- * -------------------------------------------------------------------- */
 static void test_sbox(void) {
     printf("\n[sBoxLayer]\n");
-    /* SBOX[0xE]=0x3, SBOX[0xD]=0xC  =>  0xED -> 0x3C */
+
     uint8_t state[SPONGENT128_STATE_BYTES] = {0};
     state[0] = 0xED;
     spongent128_sbox_layer(state);
     EXPECT(state[0] == 0x3C, "sBoxLayer: 0xED -> 0x3C");
 }
 
-/* -----------------------------------------------------------------------
- * pLayer — bijectivity check
- * -------------------------------------------------------------------- */
 static void test_player_bijective(void) {
     printf("\n[pLayer bijectivity]\n");
     int ok = 1;
@@ -81,9 +58,6 @@ static void test_player_bijective(void) {
     EXPECT(ok, "pLayer: each input bit maps to exactly one output bit");
 }
 
-/* -----------------------------------------------------------------------
- * Hash — determinism + sensitivity
- * -------------------------------------------------------------------- */
 static void test_hash(void) {
     printf("\n[Hash]\n");
     uint8_t d1[16], d2[16], d3[16];
@@ -100,7 +74,7 @@ static void test_hash(void) {
     uint8_t empty[16];
     spongent128_hash(NULL, 0, empty);
     print_hex("  hash(empty) ", empty, 16);
-    /* Official Spongent-128 test vector (CHES 2011 paper + spongent website) */
+
     const uint8_t tv_msg[] = "Sponge + Present = Spongent";
     const uint8_t tv_exp[16] = {
         0x6B,0x7B,0xA3,0x5E,0xB0,0x9D,0xE0,0xF8,
@@ -111,9 +85,6 @@ static void test_hash(void) {
     EXPECT_BYTES_EQ(tv_got, tv_exp, 16, "hash matches official test vector");
 }
 
-/* -----------------------------------------------------------------------
- * PRG expand — domain separation + stability
- * -------------------------------------------------------------------- */
 static void test_expand(void) {
     printf("\n[PRG expand]\n");
     uint8_t seed[16] = {0x01,0x23,0x45,0x67,0x89,0xAB,0xCD,0xEF,
@@ -132,9 +103,6 @@ static void test_expand(void) {
     print_hex("  out1 ", o1a,  16);
 }
 
-/* -----------------------------------------------------------------------
- * GGM tree — structure + correctness
- * -------------------------------------------------------------------- */
 static void test_ggm_tree(void) {
     printf("\n[GGM tree depth=4]\n");
     uint8_t root[16] = {0xDE,0xAD,0xBE,0xEF,0x00,0x11,0x22,0x33,
@@ -168,9 +136,6 @@ static void test_ggm_tree_depth8(void) {
     }
 }
 
-/* -----------------------------------------------------------------------
- * main
- * -------------------------------------------------------------------- */
 int main(void) {
     printf("=== Spongent-128 + GGM tree tests ===\n");
     test_lfsr();

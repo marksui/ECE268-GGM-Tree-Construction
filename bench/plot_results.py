@@ -4,7 +4,6 @@ import sys
 
 import matplotlib.pyplot as plt
 
-
 PRFS = ["Spongent", "Keccak"]
 PLATFORMS = ["CPU", "GPU"]
 
@@ -15,7 +14,6 @@ COLORS = {
     "Spongent": "#C69214",
 }
 
-
 def find_repo(start):
     path = Path(start).resolve()
     while path != path.parent:
@@ -23,7 +21,6 @@ def find_repo(start):
             return path
         path = path.parent
     raise FileNotFoundError("Could not find repo folder")
-
 
 def load_results(path):
     rows = []
@@ -62,17 +59,14 @@ def load_results(path):
 
     return rows
 
-
 def get_value(rows, prf, platform, depth, column):
     for row in rows:
         if row["prf"] == prf and row["platform"] == platform and row["depth"] == depth:
             return row[column]
     raise ValueError(f"Missing {prf} {platform} depth {depth}")
 
-
 def available_depths(rows):
     return sorted(set(row["depth"] for row in rows))
-
 
 def complete_depths(rows):
     depths = []
@@ -88,12 +82,10 @@ def complete_depths(rows):
             depths.append(depth)
     return depths
 
-
 def finish_chart(ax):
     ax.grid(True, axis="y", linestyle="--", alpha=0.3)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-
 
 def save_plot(fig, figure_dir, name):
     figure_dir = Path(figure_dir)
@@ -102,7 +94,6 @@ def save_plot(fig, figure_dir, name):
     fig.tight_layout()
     fig.savefig(path, dpi=150, bbox_inches="tight")
     return path
-
 
 def plot_speedup_vs_depth(rows, figure_dir):
     depths = complete_depths(rows)
@@ -152,7 +143,6 @@ def plot_speedup_vs_depth(rows, figure_dir):
     finish_chart(ax)
     return save_plot(fig, figure_dir, "speedup_vs_depth.png")
 
-
 def choose_throughput_depth(rows):
     depths = complete_depths(rows)
     if 20 in depths:
@@ -160,7 +150,6 @@ def choose_throughput_depth(rows):
     if 12 in depths:
         return 12
     return depths[-1]
-
 
 def plot_throughput_comparison(rows, figure_dir, depth=None):
     if depth is None:
@@ -198,7 +187,6 @@ def plot_throughput_comparison(rows, figure_dir, depth=None):
     finish_chart(ax)
     return save_plot(fig, figure_dir, f"throughput_comparison_depth_{depth}.png")
 
-
 def plot_runtime_vs_depth(rows, figure_dir):
     depths = complete_depths(rows)
     fig, ax = plt.subplots(figsize=(8.5, 5), dpi=150)
@@ -222,7 +210,6 @@ def plot_runtime_vs_depth(rows, figure_dir):
     ax.legend()
     finish_chart(ax)
     return save_plot(fig, figure_dir, "runtime_vs_depth.png")
-
 
 def main():
     repo = find_repo(Path.cwd())
@@ -253,7 +240,6 @@ def main():
     print("Saved figures:")
     for path in paths:
         print(path)
-
 
 if __name__ == "__main__":
     main()

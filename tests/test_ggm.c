@@ -1,13 +1,3 @@
-/*
- * tests/test_ggm.c
- *
- * GGM tree framework tests using a trivial dummy PRF.
- * No dependency on Spongent or Keccak — Member C can run this alone.
- *
- * Build:  make test_ggm
- * Run:    ./build/test_ggm
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>

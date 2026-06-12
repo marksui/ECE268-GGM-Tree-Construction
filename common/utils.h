@@ -1,7 +1,4 @@
 #pragma once
-/*
- * common/utils.h
- */
 
 #include <stdint.h>
 #include <stddef.h>

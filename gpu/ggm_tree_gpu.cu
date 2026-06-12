@@ -1,31 +1,3 @@
-/*
- * gpu/ggm_tree_gpu.cu
- *
- * Builds a complete GGM tree on the GPU, level by level.
- * Supports both Spongent-128 and Keccak-f1600 expand kernels.
- *
- * Memory layout matches cpu/ggm_tree_cpu.c (flat BFS):
- *   Node (level l, index i) is at flat index (2^l - 1 + i).
- *
- * Optimisation (v2): single cudaDeviceSynchronize() after all levels.
- *   The original code called spongent_launch_expand_level() /
- *   keccak_launch_expand_level() which each ended with a
- *   cudaDeviceSynchronize(), meaning depth-1 unnecessary CPU–GPU
- *   round-trips blocked the host between levels.
- *
- *   CUDA guarantees that kernels submitted to the *same stream* execute
- *   in submission order, so level l+1's kernel cannot begin reading the
- *   children buffer until level l's kernel has finished writing it — no
- *   explicit per-level sync is needed.  We now:
- *     a) Launch all level kernels back-to-back without blocking.
- *     b) Call cudaDeviceSynchronize() exactly once after the loop.
- *
- *   For depth 12 this removes 11 redundant CPU–GPU round-trips; early
- *   levels (1–128 nodes) finish in microseconds, so the CPU was spending
- *   most of its inter-level time in sync overhead rather than doing useful
- *   work.
- */
-
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include "ggm_tree_gpu.cuh"
@@ -36,9 +8,6 @@
 
 #define THREADS_PER_BLOCK 256
 
-/* -----------------------------------------------------------------------
- * Internal helpers
- * -------------------------------------------------------------------- */
 static inline size_t flat_index(int level, size_t i) {
     return ((size_t)1 << level) - 1 + i;
 }
@@ -66,9 +35,6 @@ static int cleanup_fail_msg(ggm_gpu_tree_t *tree, const char *where, cudaError_t
     return cleanup_fail(tree);
 }
 
-/* -----------------------------------------------------------------------
- * Shared internal setup: allocate device memory and copy root seed.
- * -------------------------------------------------------------------- */
 static int setup_gpu_tree(ggm_gpu_tree_t *tree,
                           const uint8_t  *root_seed,
                           int             depth,
@@ -100,12 +66,6 @@ static int setup_gpu_tree(ggm_gpu_tree_t *tree,
     return 0;
 }
 
-/* -----------------------------------------------------------------------
- * Public API — Spongent-128
- *
- * Change from v1: kernels are launched without per-level sync.
- * A single cudaDeviceSynchronize() is issued after the complete level loop.
- * -------------------------------------------------------------------- */
 int ggm_gpu_tree_build_spongent(ggm_gpu_tree_t *tree,
                                 const uint8_t  *root_seed,
                                 int             depth)
@@ -120,16 +80,11 @@ int ggm_gpu_tree_build_spongent(ggm_gpu_tree_t *tree,
         uint8_t *parents  = ggm_gpu_tree_get_node(tree, level,     0);
         uint8_t *children = ggm_gpu_tree_get_node(tree, level + 1, 0);
 
-        /*
-         * Launch without blocking.  CUDA stream ordering guarantees
-         * this kernel completes before the next level's kernel begins.
-         */
         rc = spongent_launch_expand_level(parents, children, N,
                                           THREADS_PER_BLOCK);
         if (rc != 0) return cleanup_fail(tree);
     }
 
-    /* Single synchronisation after all levels are dispatched. */
     cudaError_t err = cudaDeviceSynchronize();
     if (err != cudaSuccess)
         return cleanup_fail_msg(tree, "spongent tree final sync", err);
@@ -137,11 +92,6 @@ int ggm_gpu_tree_build_spongent(ggm_gpu_tree_t *tree,
     return 0;
 }
 
-/* -----------------------------------------------------------------------
- * Block-size variant — Spongent-128
- * Same as ggm_gpu_tree_build_spongent but accepts threads_per_block at
- * runtime. Used by the block-size sensitivity benchmark (Section 2).
- * -------------------------------------------------------------------- */
 int ggm_gpu_tree_build_spongent_tpb(ggm_gpu_tree_t *tree,
                                     const uint8_t  *root_seed,
                                     int             depth,
@@ -168,10 +118,6 @@ int ggm_gpu_tree_build_spongent_tpb(ggm_gpu_tree_t *tree,
     return 0;
 }
 
-/* -----------------------------------------------------------------------
- * Public API — Keccak-f1600
- * (same single-sync pattern applied for consistency)
- * -------------------------------------------------------------------- */
 int ggm_gpu_tree_build_keccak(ggm_gpu_tree_t *tree,
                               const uint8_t  *root_seed,
                               int             depth)
@@ -198,9 +144,6 @@ int ggm_gpu_tree_build_keccak(ggm_gpu_tree_t *tree,
     return 0;
 }
 
-/* -----------------------------------------------------------------------
- * Copy full tree from device to host buffer
- * -------------------------------------------------------------------- */
 int ggm_gpu_tree_copy_to_host(const ggm_gpu_tree_t *tree,
                               uint8_t *out, size_t out_bytes)
 {
@@ -215,9 +158,6 @@ int ggm_gpu_tree_copy_to_host(const ggm_gpu_tree_t *tree,
     return -1;
 }
 
-/* -----------------------------------------------------------------------
- * Free device memory
- * -------------------------------------------------------------------- */
 void ggm_gpu_tree_free(ggm_gpu_tree_t *tree) {
     if (!tree) return;
     if (tree->d_data) cudaFree(tree->d_data);

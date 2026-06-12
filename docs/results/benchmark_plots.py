@@ -7,13 +7,12 @@ import matplotlib.ticker
 
 os.makedirs("plots", exist_ok=True)
 
-# ── Palette ──────────────────────────────────────────────────────────────────
 BG         = "#FFFFFF"
 PANEL      = "#F5F7FA"
-BLUE       = "#1A7BBF"   # Spongent GPU
-BLUE_DARK  = "#0F4C75"   # Spongent CPU
-GOLD       = "#D4900A"   # Keccak GPU
-GOLD_MUTED = "#B07A10"   # Keccak CPU
+BLUE       = "#1A7BBF"
+BLUE_DARK  = "#0F4C75"
+GOLD       = "#D4900A"
+GOLD_MUTED = "#B07A10"
 TEXT       = "#1A1A2E"
 GRID       = "#D0D7E3"
 
@@ -33,8 +32,6 @@ plt.rcParams.update({
     "axes.titleweight": "bold",
     "figure.dpi":       150,
 })
-
-# ── Raw data ──────────────────────────────────────────────────────────────────
 
 s0 = {
     "depth":   [8,       12,        16,         20],
@@ -72,7 +69,6 @@ s3 = {
     "d2h_ms":   [0.038,   0.053,   0.291,   0.488,   6.574,    12.601],
 }
 
-# Mapping exact ground-truth throughput to bypass float precision issues
 raw_lps_map = {
     ("Spongent", "CPU", 4): 402.42,   ("Spongent", "GPU", 4): 1150.47,
     ("Keccak", "CPU", 4): 202271.60,  ("Keccak", "GPU", 4): 91838.57,
@@ -93,8 +89,6 @@ raw_lps_map = {
     ("Keccak", "CPU", 20): 196138.70, ("Keccak", "GPU", 20): 202068562.50
 }
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
 def merge_sort(d_list, ms_list, std_list=None):
     std = std_list if std_list is not None else [0] * len(d_list)
     rows = sorted(zip(d_list, ms_list, std))
@@ -114,17 +108,12 @@ def style_ax(ax, all_depths, ylabel, title):
     ax.spines[["top", "right"]].set_visible(False)
 
 def add_labels(ax, x, y, fmt_func, color, y_offset_factor=1.15):
-    """Safely plots explicit data labels on a log-scaled canvas without overlaps."""
     for xi, yi in zip(x, y):
         if yi == 0: continue
-        ax.text(xi, yi * y_offset_factor, fmt_func(yi), 
+        ax.text(xi, yi * y_offset_factor, fmt_func(yi),
                 color=color, fontsize=8, ha='center', va='bottom',
                 bbox=dict(boxstyle="round,pad=0.15", facecolor=BG, edgecolor="none", alpha=0.75))
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PLOT 1 — GPU Speedup vs Tree Depth
-# ─────────────────────────────────────────────────────────────────────────────
 def plot_speedup():
     spu_d, spu_c, _ = merge_sort(s0["depth"] + s1["depth_both"], s0["spu_cpu"] + s1["spu_cpu_m"])
     _,     spu_g, _ = merge_sort(s0["depth"] + s1["depth_both"], s0["spu_gpu"] + s1["spu_gpu_m"])
@@ -139,12 +128,11 @@ def plot_speedup():
     ax.plot(spu_d, spu_speedup, color=BLUE, marker="o", linewidth=2.2, markersize=7, label="Spongent GPU / CPU")
     ax.plot(kec_d, kec_speedup, color=GOLD, marker="s", linewidth=2.2, markersize=7, label="Keccak GPU / CPU")
 
-    # Add labels
     add_labels(ax, spu_d, spu_speedup, lambda v: f"{v:,.1f}x", BLUE, 1.2)
     add_labels(ax, kec_d, kec_speedup, lambda v: f"{v:,.1f}x", GOLD, 0.75)
 
     ax.axhline(1.0, color=TEXT, linewidth=0.9, linestyle="--", alpha=0.35)
-    
+
     style_ax(ax, spu_d + kec_d, "GPU Speedup (× CPU runtime)", "Plot 1 — GPU Speedup over CPU vs Tree Depth")
     ax.yaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:,.0f}×"))
     ax.legend(framealpha=0.7, edgecolor=GRID, loc="upper left")
@@ -154,10 +142,6 @@ def plot_speedup():
     plt.close(fig)
     print("  ✓ plot1_speedup.png")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PLOT 2 — Throughput vs Tree Depth
-# ─────────────────────────────────────────────────────────────────────────────
 def plot_throughput():
     sc_d, sc_ms, _ = merge_sort(s0["depth"] + s1["depth_both"], s0["spu_cpu"] + s1["spu_cpu_m"])
     sg_d, sg_ms, _ = merge_sort(s0["depth"] + s1["depth_both"] + [18], s0["spu_gpu"] + s1["spu_gpu_m"] + [s1["d18_spu_gpu_m"]])
@@ -176,7 +160,6 @@ def plot_throughput():
     ax.plot(kc_d, kc_lps, color=GOLD_MUTED, marker="^", linestyle="-", linewidth=2.2, label="CPU Keccak")
     ax.plot(kg_d, kg_lps, color=GOLD,       marker="D", linestyle="--", linewidth=2.2, label="GPU Keccak")
 
-    # Format helpers for tight label structures
     fmt = lambda v: f"{v/1e6:.1f}M" if v >= 1e6 else (f"{v/1e3:.1f}k" if v >= 1e3 else f"{v:.0f}")
     add_labels(ax, sc_d, sc_lps, fmt, BLUE_DARK, 0.70)
     add_labels(ax, sg_d, sg_lps, fmt, BLUE, 1.35)
@@ -192,10 +175,6 @@ def plot_throughput():
     plt.close(fig)
     print("  ✓ plot2_throughput.png")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PLOT 3 — Runtime vs Depth
-# ─────────────────────────────────────────────────────────────────────────────
 def draw_line_with_labels(ax, d, m, s, color, ls, marker, label, offset, fmt_func):
     ax.plot(d, m, color=color, linestyle=ls, marker=marker, linewidth=2.2, markersize=6, label=label, zorder=3)
     if np.any(np.array(s) > 0):
@@ -225,10 +204,6 @@ def plot_runtime():
     plt.close(fig)
     print("  ✓ plot3_runtime.png")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PLOT 4 — Block-size sensitivity
-# ─────────────────────────────────────────────────────────────────────────────
 def plot_blocksize():
     tpb  = s2["tpb"]
     vals = s2["lps"]
@@ -241,7 +216,6 @@ def plot_blocksize():
     ax.plot(tpb, vals, color=BLUE, marker="o", linewidth=2.2, markersize=8, zorder=3, label="Throughput")
     ax.fill_between(tpb, [v - e for v, e in zip(vals, lps_std)], [v + e for v, e in zip(vals, lps_std)], color=BLUE, alpha=0.15, zorder=2)
 
-    # Dynamic data labeling for throughput values
     for x, y in zip(tpb, vals):
         ax.text(x, y + 4000, f"{y/1e3:.1f}k l/s", color=TEXT, fontsize=8.5, ha="center")
 
@@ -263,10 +237,6 @@ def plot_blocksize():
     plt.close(fig)
     print("  ✓ plot4_blocksize.png")
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# PLOT 5 — Memory Transfer Breakdown
-# ─────────────────────────────────────────────────────────────────────────────
 def plot_memory():
     sp_depths = [12, 16, 20]
     sp_build  = [s3["build_ms"][0], s3["build_ms"][2], s3["build_ms"][4]]
@@ -282,7 +252,6 @@ def plot_memory():
     ax.plot(ke_depths, ke_build, color=GOLD,       marker="s", linestyle="-",  linewidth=2.2, label="Keccak — GPU Compute")
     ax.plot(ke_depths, ke_d2h,   color=GOLD_MUTED, marker="s", linestyle="--", linewidth=2.2, label="Keccak — D2H Transfer")
 
-    # Explicit inline data labeling via custom scale offsets
     fmt = lambda v: f"{v:.3f}ms" if v < 1 else f"{v:,.1f}ms"
     add_labels(ax, sp_depths, sp_build, fmt, BLUE, 1.25)
     add_labels(ax, sp_depths, sp_d2h,   fmt, BLUE_DARK, 0.65)
@@ -304,30 +273,26 @@ def plot_memory():
     print("  ✓ plot5_memory.png")
 
 def plot_crossover():
-    # Filter for the overhead/crossover zone (Depths 4 to 10)
     crossover_depths = [4, 6, 8, 10]
-    
-    # Extract matching clean data pools from s0 and s1
+
     spu_cpu = [39.759, 165.677, 727.317, 2717.463]
     spu_gpu = [13.907, 29.441,  59.028,  63.114]
-    
+
     kec_cpu = [0.079,   0.311,   1.311,   4.970]
     kec_gpu = [0.174,   0.194,   0.383,   0.258]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 6), sharex=True)
 
-    # ── PANEL 1: SPONGENT OVERVIEW ───────────────────────────────────────────
     ax1.plot(crossover_depths, spu_cpu, color=BLUE_DARK, marker="o", linewidth=2.5, label="CPU Spongent")
     ax1.plot(crossover_depths, spu_gpu, color=BLUE, marker="s", linestyle="--", linewidth=2.5, label="GPU Spongent")
-    
-    # Labels for Spongent
+
     for x, c_y, g_y in zip(crossover_depths, spu_cpu, spu_gpu):
         ax1.text(x, c_y * 1.2, f"{c_y:.1f}ms", color=BLUE_DARK, fontsize=8, ha="center")
         ax1.text(x, g_y * 0.7, f"{g_y:.1f}ms", color=BLUE, fontsize=8, ha="center")
 
     ax1.axvline(x=4.0, color="#E63946", linestyle=":", linewidth=1.5, alpha=0.8)
     ax1.text(4.1, 1500, "Crossover < Depth 4\n(GPU wins instantly)", color="#E63946", fontsize=9, fontweight="bold")
-    
+
     ax1.set_yscale("log")
     ax1.set_title("Spongent Crossover Zone")
     ax1.set_ylabel("Execution Time (ms, log scale)")
@@ -336,16 +301,13 @@ def plot_crossover():
     ax1.legend(loc="upper left")
     ax1.spines[["top", "right"]].set_visible(False)
 
-    # ── PANEL 2: KECCAK OVERVIEW ─────────────────────────────────────────────
     ax2.plot(crossover_depths, kec_cpu, color=GOLD_MUTED, marker="^", linewidth=2.5, label="CPU Keccak")
     ax2.plot(crossover_depths, kec_gpu, color=GOLD, marker="D", linestyle="--", linewidth=2.5, label="GPU Keccak")
-    
-    # Labels for Keccak
+
     for x, c_y, g_y in zip(crossover_depths, kec_cpu, kec_gpu):
         ax2.text(x, c_y * 1.2, f"{c_y:.2f}ms", color=GOLD_MUTED, fontsize=8, ha="center")
         ax2.text(x, g_y * 0.7, f"{g_y:.2f}ms", color=GOLD, fontsize=8, ha="center")
 
-    # Mark the exact intersection point (around depth 5)
     ax2.axvline(x=5.0, color="#E63946", linestyle=":", linewidth=1.5, alpha=0.8)
     ax2.plot(5.0, 0.185, marker="X", color="#E63946", markersize=10, zorder=5)
     ax2.text(5.2, 0.04, "Crossover ~ Depth 5\nLaunch Overhead Overtaken", color="#E63946", fontsize=9, fontweight="bold")
@@ -362,8 +324,7 @@ def plot_crossover():
     fig.savefig("plots/plot6_crossover.png", dpi=150, bbox_inches="tight", facecolor=BG)
     plt.close(fig)
     print("  ✓ plot6_crossover.png")
-    
-# ─────────────────────────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
     print("Generating GGM Tree benchmark plots → plots/")
     plot_speedup()

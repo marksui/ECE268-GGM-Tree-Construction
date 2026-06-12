@@ -1,11 +1,4 @@
 #pragma once
-/*
- * cpu/ggm_tree_cpu.h
- *
- * GGM binary PRF tree -- CPU implementation.
- * Memory layout is flat BFS:
- *   node (level l, index i) is at flat index (2^l - 1 + i).
- */
 
 #include <stdint.h>
 #include <stddef.h>

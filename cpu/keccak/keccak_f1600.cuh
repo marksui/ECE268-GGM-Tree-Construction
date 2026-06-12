@@ -1,8 +1,4 @@
 #pragma once
-/*
- * keccak/keccak_f1600.cuh
- * CUDA-compatible header for Keccak-f1600 core functions.
- */
 
 #include <stdint.h>
 #include <stddef.h>

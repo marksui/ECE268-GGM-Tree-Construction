@@ -1,7 +1,3 @@
-/*
- * cpu/ggm_tree_cpu.c
- */
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

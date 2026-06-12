@@ -1,19 +1,3 @@
-# Makefile — GGM PRF Tree Project (ECE268)
-#
-# CPU tests (gcc, no CUDA needed):
-#   make all             run both CPU test suites
-#   make test_ggm        GGM tree framework (Dummy PRF)
-#   make test_spongent   Spongent-128 + GGM tree
-#
-# GPU builds (nvcc required):
-#   make test_ggm_gpu    Spongent + Keccak CPU vs GPU comparison
-#   make test_keccak     Keccak NIST KAT + 10k CPU/GPU equivalence
-#   make benchmark       CPU/GPU throughput benchmark
-#   make gpu_all         build all GPU test binaries
-#
-# Override GPU arch (default sm_61 = DSMLP GTX 1080 Ti):
-#   make gpu_all GPU_ARCH=sm_89
-
 CC        = gcc
 NVCC      = nvcc
 CFLAGS    = -std=c11 -Wall -Wextra -Wpedantic -O2 \
@@ -46,27 +30,18 @@ gpu_all: test_ggm_gpu test_keccak
 $(BUILD):
 	mkdir -p $(BUILD)
 
-# -----------------------------------------------------------------------
-# CPU: GGM tree framework (Dummy PRF)
-# -----------------------------------------------------------------------
 $(BUILD)/test_ggm: tests/test_ggm.c $(COMMON) | $(BUILD)
 	$(CC) $(CFLAGS) $^ -o $@
 
 test_ggm: $(BUILD)/test_ggm
 	./$(BUILD)/test_ggm
 
-# -----------------------------------------------------------------------
-# CPU: Spongent-128 + GGM tree
-# -----------------------------------------------------------------------
 $(BUILD)/test_spongent: tests/test_spongent.c $(COMMON) $(SPONG_CPU) | $(BUILD)
 	$(CC) $(CFLAGS) $^ -o $@
 
 test_spongent: $(BUILD)/test_spongent
 	./$(BUILD)/test_spongent
 
-# -----------------------------------------------------------------------
-# GPU: Spongent + Keccak CPU vs GPU comparison
-# -----------------------------------------------------------------------
 $(BUILD)/ggm_tree_cpu.o: cpu/ggm_tree_cpu.c cpu/ggm_tree_cpu.h common/prf_interface.h | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -104,18 +79,12 @@ $(BUILD)/test_ggm_gpu: tests/test_ggm_gpu.cu \
 test_ggm_gpu: $(BUILD)/test_ggm_gpu
 	./$(BUILD)/test_ggm_gpu
 
-# -----------------------------------------------------------------------
-# GPU: Keccak NIST KAT + 10k CPU/GPU equivalence
-# -----------------------------------------------------------------------
 $(BUILD)/test_keccak: tests/test_keccak.cu $(KECCAK_OBJS) | $(BUILD)
 	$(NVCC) $(NVCCFLAGS) $^ -o $@
 
 test_keccak: $(BUILD)/test_keccak
 	./$(BUILD)/test_keccak
 
-# -----------------------------------------------------------------------
-# Benchmark: CPU/GPU throughput across depths
-# -----------------------------------------------------------------------
 $(BUILD)/benchmark_ggm: $(BENCH) \
                         $(BUILD)/ggm_tree_gpu.o \
                         $(COMMON_OBJS) \
@@ -126,6 +95,5 @@ $(BUILD)/benchmark_ggm: $(BENCH) \
 benchmark: $(BUILD)/benchmark_ggm
 	./$(BUILD)/benchmark_ggm
 
-# -----------------------------------------------------------------------
 clean:
 	rm -rf $(BUILD)

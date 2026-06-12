@@ -1,20 +1,3 @@
-/*
- * bench/benchmark_ggm.cu — Comprehensive GGM tree benchmark
- *
- * Four sections:
- *   Section 0: Standard depths  {8,12,16,20}, best-of-1 (original data)
- *   Section 1: Dense depth sweep {4,6,10,14,18}, mean+stddev, repeat=5
- *   Section 2: Block-size sweep  Spongent GPU depth 16, tpb=32..512
- *   Section 3: Transfer breakdown build(H2D+compute) vs D2H, depths 12/16/20
- *
- * Usage:
- *   ./build/benchmark_ggm          — all sections
- *   ./build/benchmark_ggm 0        — section 0 only
- *   ./build/benchmark_ggm 1        — section 1 only
- *   ./build/benchmark_ggm 2        — section 2 only
- *   ./build/benchmark_ggm 3        — section 3 only
- */
-
 #include <cuda_runtime.h>
 #include <chrono>
 #include <cmath>
@@ -30,16 +13,12 @@
 #include "../cpu/keccak/keccak_f1600.cuh"
 #include "../cpu/keccak/keccak_prf.cuh"
 
-/* -----------------------------------------------------------------------
- * Timing helpers
- * -------------------------------------------------------------------- */
 static double wall_ms(void) {
     auto t  = std::chrono::high_resolution_clock::now();
     auto ms = std::chrono::duration<double, std::milli>(t.time_since_epoch());
     return ms.count();
 }
 
-/* GPU-side elapsed time between two recorded events (ms) */
 static float cuda_elapsed_ms(cudaEvent_t start, cudaEvent_t stop) {
     float ms = 0.0f;
     cudaEventElapsedTime(&ms, start, stop);
@@ -63,9 +42,6 @@ static void make_seed(uint8_t *seed, int len, int start) {
         seed[i] = (uint8_t)((start + i * 13) & 0xff);
 }
 
-/* -----------------------------------------------------------------------
- * GPU detection
- * -------------------------------------------------------------------- */
 static int check_gpu(void) {
     int count = 0;
     if (cudaGetDeviceCount(&count) != cudaSuccess || count == 0) {
@@ -80,9 +56,6 @@ static int check_gpu(void) {
     return 1;
 }
 
-/* -----------------------------------------------------------------------
- * CPU runner — returns best_ms
- * -------------------------------------------------------------------- */
 static double run_cpu(const prf_t *prf, const uint8_t *seed,
                       int depth, int repeat)
 {
@@ -101,7 +74,6 @@ static double run_cpu(const prf_t *prf, const uint8_t *seed,
     return best;
 }
 
-/* CPU runner — returns all samples for mean/stddev */
 static void run_cpu_samples(const prf_t *prf, const uint8_t *seed,
                              int depth, int repeat, double *out)
 {
@@ -115,9 +87,6 @@ static void run_cpu_samples(const prf_t *prf, const uint8_t *seed,
     }
 }
 
-/* -----------------------------------------------------------------------
- * GPU Spongent runner — returns best_ms
- * -------------------------------------------------------------------- */
 static double run_gpu_spongent(const uint8_t *seed, int depth, int repeat) {
     double best = -1.0;
     for (int i = 0; i < repeat; i++) {
@@ -133,7 +102,6 @@ static double run_gpu_spongent(const uint8_t *seed, int depth, int repeat) {
     return best;
 }
 
-/* GPU Spongent runner — returns all samples */
 static void run_gpu_spongent_samples(const uint8_t *seed, int depth,
                                       int repeat, double *out)
 {
@@ -149,9 +117,6 @@ static void run_gpu_spongent_samples(const uint8_t *seed, int depth,
     }
 }
 
-/* -----------------------------------------------------------------------
- * GPU Keccak runner — returns best_ms
- * -------------------------------------------------------------------- */
 static double run_gpu_keccak(const uint8_t *seed, int depth, int repeat) {
     double best = -1.0;
     for (int i = 0; i < repeat; i++) {
@@ -167,7 +132,6 @@ static double run_gpu_keccak(const uint8_t *seed, int depth, int repeat) {
     return best;
 }
 
-/* GPU Keccak runner — returns all samples */
 static void run_gpu_keccak_samples(const uint8_t *seed, int depth,
                                     int repeat, double *out)
 {
@@ -183,9 +147,6 @@ static void run_gpu_keccak_samples(const uint8_t *seed, int depth,
     }
 }
 
-/* -----------------------------------------------------------------------
- * Print helpers
- * -------------------------------------------------------------------- */
 static void print_best(const char *prf, const char *plat,
                         int depth, double ms)
 {
@@ -210,9 +171,6 @@ static void print_mean(const char *prf, const char *plat,
            mean, stddev, lps);
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
- * SECTION 0: Standard depths — best-of-1 (matches original output)
- * ═══════════════════════════════════════════════════════════════════════ */
 static void section0(int has_gpu,
                      const uint8_t *seed16, const uint8_t *seed32)
 {
@@ -233,14 +191,6 @@ static void section0(int has_gpu,
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
- * SECTION 1: Dense depth sweep — mean ± stddev, repeat=5
- *
- * Intermediate depths {4,6,10,14,18} fill in the gaps between the four
- * standard depths so the speedup-vs-depth curve can be plotted smoothly.
- *
- * Spongent CPU is skipped for depth > 14 (would take > 8 min per run).
- * ═══════════════════════════════════════════════════════════════════════ */
 static void section1(int has_gpu,
                      const uint8_t *seed16, const uint8_t *seed32)
 {
@@ -257,26 +207,22 @@ static void section1(int has_gpu,
     for (int i = 0; i < nd; i++) {
         int d = depths[i];
 
-        /* Spongent CPU (skip depth 18) */
         if (d <= 14) {
             run_cpu_samples(&SPONGENT128_PRF, seed16, d, repeat, samples);
             stats(samples, repeat, &mean, &stddev);
             print_mean("Spongent", "CPU", d, mean, stddev);
         }
 
-        /* Spongent GPU */
         if (has_gpu) {
             run_gpu_spongent_samples(seed16, d, repeat, samples);
             stats(samples, repeat, &mean, &stddev);
             print_mean("Spongent", "GPU", d, mean, stddev);
         }
 
-        /* Keccak CPU */
         run_cpu_samples(&KECCAK1600_PRF, seed32, d, repeat, samples);
         stats(samples, repeat, &mean, &stddev);
         print_mean("Keccak", "CPU", d, mean, stddev);
 
-        /* Keccak GPU */
         if (has_gpu) {
             run_gpu_keccak_samples(seed32, d, repeat, samples);
             stats(samples, repeat, &mean, &stddev);
@@ -285,13 +231,6 @@ static void section1(int has_gpu,
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
- * SECTION 2: Block-size sensitivity sweep
- *
- * Runs Spongent GPU at depth 16 with threads-per-block in {32,64,128,256,512}.
- * Shows how occupancy tuning affects throughput on GTX 1080 Ti (sm_61,
- * 3584 CUDA cores, max 1024 threads/block).
- * ═══════════════════════════════════════════════════════════════════════ */
 static void section2(int has_gpu, const uint8_t *seed16)
 {
     printf("\n# === Section 2: Block-size sensitivity, Spongent GPU depth=16, repeat=5 ===\n");
@@ -303,7 +242,7 @@ static void section2(int has_gpu, const uint8_t *seed16)
     int tpbs[]        = {32, 64, 128, 256, 512};
     int ntpb          = 5;
     double samples[5];
-    double baseline   = -1.0;   /* mean at tpb=256 */
+    double baseline   = -1.0;
 
     for (int t = 0; t < ntpb; t++) {
         int tpb = tpbs[t];
@@ -331,16 +270,6 @@ static void section2(int has_gpu, const uint8_t *seed16)
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
- * SECTION 3: Memory transfer breakdown
- *
- * Separates GPU tree-build time (H2D seed copy + kernel compute) from
- * D2H copy time (reading the full tree back to host).  At large depths
- * the tree can be tens of MB; this shows whether transfer or compute
- * dominates.
- *
- * Depths: 12, 16, 20 for both PRFs.
- * ═══════════════════════════════════════════════════════════════════════ */
 static void section3(int has_gpu,
                      const uint8_t *seed16, const uint8_t *seed32)
 {
@@ -357,7 +286,6 @@ static void section3(int has_gpu,
     for (int i = 0; i < nd; i++) {
         int d = depths[i];
 
-        /* ---- Spongent ---- */
         {
             size_t nodes      = ggm_gpu_tree_total_nodes(d);
             size_t tree_bytes = nodes * SPONGENT128_HASH_BYTES;
@@ -401,7 +329,6 @@ static void section3(int has_gpu,
             }
         }
 
-        /* ---- Keccak ---- */
         {
             size_t nodes      = ggm_gpu_tree_total_nodes(d);
             size_t tree_bytes = nodes * KECCAK1600_HASH_BYTES;
@@ -447,9 +374,6 @@ static void section3(int has_gpu,
     }
 }
 
-/* ═══════════════════════════════════════════════════════════════════════
- * main
- * ═══════════════════════════════════════════════════════════════════════ */
 int main(int argc, char **argv)
 {
     uint8_t seed16[16], seed32[32];
@@ -458,7 +382,6 @@ int main(int argc, char **argv)
 
     int has_gpu = check_gpu();
 
-    /* Optional: run only one section if argv[1] is 0..3 */
     int only = -1;
     if (argc >= 2) only = atoi(argv[1]);
 
